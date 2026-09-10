@@ -1,0 +1,17 @@
+# 빌드 산출물
+build/
+dist/
+*.spec.bak
+__pycache__/
+*.py[cod]
+
+# 개발 중 생성물
+out/
+sprites/
+*.log
+
+# 편집기
+.vscode/
+.idea/
+*.swp
+.DS_Store
