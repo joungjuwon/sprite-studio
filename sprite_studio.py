@@ -54,6 +54,18 @@ def t(key, **kw):
 
 TRANSLATIONS = {
     "en": {
+        "분리": "Split",
+        "분리 옵션": "Split options",
+        "선택한 시트에만 적용됩니다": "Applies to the selected sheet only",
+        "이름 접두어로 하위 폴더 만들기": "Make a subfolder named after the prefix",
+        "먼저 시트를 등록하세요.": "Register a sheet first.",
+        "PNG {a0}장을 저장했습니다.\n\n{a1}": "Saved {a0} PNG files.\n\n{a1}",
+        "시트 {a0}장에서 PNG {a1}장을 저장했습니다.\n\n{a2}":
+            "Saved {a1} PNG files from {a0} sheets.\n\n{a2}",
+        "새 시트를 저장했습니다.\n\n{a0}\n{a1}×{a2} · 스프라이트 {a3}개":
+            "Saved the new sheet.\n\n{a0}\n{a1}×{a2} · {a3} sprites",
+        "같은 접두어를 쓰는 시트가 있어 한 폴더에 섞입니다: {a0}":
+            "Sheets share a prefix, so they land in the same folder: {a0}",
         "\n시트를 여기로\n끌어다 놓으세요\n": "\nDrop sheets\nhere\n",
         "   ·   겹침 {a0}개": "   ·   {a0} overlapping",
         "   ⚠ 빨간 테두리는 서로 겹친 항목입니다": "   ⚠ Red outlines are overlapping",
@@ -237,6 +249,18 @@ TRANSLATIONS = {
         "언어": "Language",
     },
     "ja": {
+        "분리": "分割",
+        "분리 옵션": "分割オプション",
+        "선택한 시트에만 적용됩니다": "選択中のシートにのみ適用されます",
+        "이름 접두어로 하위 폴더 만들기": "名前の接頭辞でサブフォルダーを作る",
+        "먼저 시트를 등록하세요.": "先にシートを登録してください。",
+        "PNG {a0}장을 저장했습니다.\n\n{a1}": "PNG {a0}枚を保存しました。\n\n{a1}",
+        "시트 {a0}장에서 PNG {a1}장을 저장했습니다.\n\n{a2}":
+            "シート{a0}枚からPNG {a1}枚を保存しました。\n\n{a2}",
+        "새 시트를 저장했습니다.\n\n{a0}\n{a1}×{a2} · 스프라이트 {a3}개":
+            "新しいシートを保存しました。\n\n{a0}\n{a1}×{a2} · スプライト{a3}個",
+        "같은 접두어를 쓰는 시트가 있어 한 폴더에 섞입니다: {a0}":
+            "同じ接頭辞のシートがあるため同じフォルダーに混ざります: {a0}",
         "\n시트를 여기로\n끌어다 놓으세요\n": "\nシートを\nここにドロップ\n",
         "   ·   겹침 {a0}개": "   ·   重なり {a0}個",
         "   ⚠ 빨간 테두리는 서로 겹친 항목입니다": "   ⚠ 赤い枠は重なっている項目です",
@@ -433,6 +457,11 @@ FG_DIM = "#9aa0a6"
 ACCENT = "#00e5ff"
 SEL_COLOR = "#ffd54f"
 WARN_COLOR = "#ff5252"
+
+SEC_BG = "#dfe3e6"          # 접이식 옵션 머리글
+SEC_BG_HOVER = "#cdd4d9"
+SEC_FG = "#1f2328"
+SEC_MARK = "#5a6672"
 
 
 # ============================================================ 핵심 이미지 로직
@@ -1108,6 +1137,8 @@ class SpriteStudio:
         self._save_job = None
         self._dragsheet = None      # 라이브러리 → 배치 탭 드래그 중인 시트 인덱스
         self._ghost = None          # 드래그 중 커서를 따라다니는 작은 창
+        self._analyze_gen = 0       # 분석 요청 번호. 늦게 온 옛 결과를 버린다
+        self._sec_open = dict((self.settings.get("prefs") or {}).get("sections") or {})
 
         root.title(APP_NAME)
         root.geometry("1340x820")
@@ -1245,8 +1276,30 @@ class SpriteStudio:
         right.pack_propagate(False)
 
         self._build_export_area(right)      # 아래쪽에 먼저 자리를 잡는다
-        self.opt_area = ttk.Frame(right)
-        self.opt_area.pack(side="top", fill="both", expand=True)
+
+        # 옵션은 다 펼치면 패널보다 길어질 수 있어 스크롤되게 담는다
+        try:
+            panel_bg = ttk.Style().lookup("TFrame", "background") or "#f0f0f0"
+        except Exception:
+            panel_bg = "#f0f0f0"
+        oholder = ttk.Frame(right)
+        oholder.pack(side="top", fill="both", expand=True)
+        self.opt_canvas = tk.Canvas(oholder, bg=panel_bg, highlightthickness=0)
+        osb = ttk.Scrollbar(oholder, orient="vertical", command=self.opt_canvas.yview)
+        self.opt_canvas.configure(yscrollcommand=osb.set)
+        osb.pack(side="right", fill="y")
+        self.opt_canvas.pack(side="left", fill="both", expand=True)
+        self.opt_area = ttk.Frame(self.opt_canvas)
+        self.opt_window = self.opt_canvas.create_window((0, 0), window=self.opt_area,
+                                                        anchor="nw")
+        self.opt_area.bind("<Configure>", lambda e: self._sync_opt_scroll())
+        self.opt_canvas.bind("<Configure>", lambda e: self.opt_canvas.itemconfigure(
+            self.opt_window, width=e.width))
+        for w in (self.opt_canvas, self.opt_area):
+            w.bind("<MouseWheel>", self._on_opt_wheel)
+            w.bind("<Button-4>", lambda e: self.opt_canvas.yview_scroll(-1, "units"))
+            w.bind("<Button-5>", lambda e: self.opt_canvas.yview_scroll(1, "units"))
+
         self.opt_split = ttk.Frame(self.opt_area)
         self.opt_layout = ttk.Frame(self.opt_area)
         self._build_split_options(self.opt_split)
@@ -1254,9 +1307,62 @@ class SpriteStudio:
         self.opt_split.pack(fill="both", expand=True)
 
     # --------------------------------------------------- 오른쪽 패널 세 부분
+    def _on_opt_wheel(self, event):
+        self.opt_canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
+        return "break"
+
+    def _sync_opt_scroll(self):
+        self.opt_canvas.configure(scrollregion=self.opt_canvas.bbox("all"))
+
+    def _section(self, parent, key, title, default_open=False, action=None):
+        """머리글만 보이다가 누르면 펼쳐지는 옵션 묶음. 본문 프레임을 돌려준다.
+
+        key    : 접힘 상태를 기억할 이름. 언어를 바꿔도 유지되도록 제목과 분리한다.
+        action : (버튼 글자, 콜백). 머리글 오른쪽에 작은 버튼을 붙인다. 접힌
+                 상태에서도 보이므로 자주 쓰는 동작을 여기에 둔다.
+        """
+        opened = bool(self._sec_open.get(key, default_open))
+        self._sec_open[key] = opened
+
+        outer = ttk.Frame(parent)
+        outer.pack(fill="x", pady=(0, 4))
+        head = tk.Frame(outer, bg=SEC_BG, cursor="hand2")
+        head.pack(fill="x")
+        mark = tk.Label(head, text="▾" if opened else "▸", bg=SEC_BG, fg=SEC_MARK,
+                        font=(UI_FONT, 9), width=2)
+        mark.pack(side="left")
+        lab = tk.Label(head, text=title, bg=SEC_BG, fg=SEC_FG, anchor="w",
+                       font=(UI_FONT, 10, "bold"))
+        lab.pack(side="left", fill="x", expand=True, pady=4)
+        if action:
+            ttk.Button(head, text=action[0], width=7,
+                       command=action[1]).pack(side="right", padx=3, pady=2)
+
+        body = ttk.Frame(outer, padding=(10, 6))
+        if opened:
+            body.pack(fill="x")
+
+        def toggle(_e=None):
+            now = not self._sec_open.get(key, False)
+            self._sec_open[key] = now
+            mark.config(text="▾" if now else "▸")
+            if now:
+                body.pack(fill="x")
+            else:
+                body.pack_forget()
+            self.save_session()
+            self.root.after_idle(self._sync_opt_scroll)
+
+        tinted = (head, mark, lab)
+        for w in tinted:
+            w.bind("<Button-1>", toggle)
+            w.bind("<MouseWheel>", self._on_opt_wheel)
+            w.bind("<Enter>", lambda e: [x.config(bg=SEC_BG_HOVER) for x in tinted])
+            w.bind("<Leave>", lambda e: [x.config(bg=SEC_BG) for x in tinted])
+        return body
+
     def _build_split_options(self, parent):
-        abox = ttk.LabelFrame(parent, text=t("좌표 파일 (아틀라스)"), padding=8)
-        abox.pack(fill="x", pady=(0, 6))
+        abox = self._section(parent, "atlas", t("좌표 파일 (아틀라스)"))
         self.atlas_lbl = ttk.Label(abox, text=t("없음 - 픽셀로 자동 감지 중"),
                                    foreground="#888", font=(UI_FONT, 9),
                                    wraplength=270, justify="left")
@@ -1277,8 +1383,10 @@ class SpriteStudio:
                         variable=self.v_fliprot,
                         command=self.on_atlas_opt).pack(anchor="w")
 
-        box = ttk.LabelFrame(parent, text=t("분리 옵션 (선택한 시트에만 적용)"), padding=8)
-        box.pack(fill="x")
+        box = self._section(parent, "split", t("분리 옵션"),
+                            action=(t("분리"), self.run_split))
+        ttk.Label(box, text=t("선택한 시트에만 적용됩니다"), foreground="#888",
+                  font=(UI_FONT, 8)).pack(anchor="w", pady=(0, 3))
         self.s_merge = self._slider(box, t("덩어리 묶기(px)"), 0, 0, 20)
         self.s_minsize = self._slider(box, t("최소 크기(px)"), 3, 1, 40)
         self.s_minarea = self._slider(box, t("최소 픽셀 수"), 8, 1, 200)
@@ -1297,8 +1405,7 @@ class SpriteStudio:
         ttk.Button(box, text=t("이 설정을 모든 시트에 적용"),
                    command=self.apply_to_all).pack(fill="x", pady=(6, 0))
 
-        box2 = ttk.LabelFrame(parent, text=t("잘라내기 방식"), padding=8)
-        box2.pack(fill="x", pady=6)
+        box2 = self._section(parent, "crop", t("잘라내기 방식"))
         self.s_pad = self._slider(box2, t("여백(px)"), 0, 0, 20, live=False)
         ttk.Checkbutton(box2, text=t("정사각형으로 크기 통일"), variable=self.v_square,
                         command=self.store_opts).pack(anchor="w", pady=2)
@@ -1308,12 +1415,11 @@ class SpriteStudio:
         e = ttk.Entry(prow, textvariable=self.v_prefix, width=15)
         e.pack(side="right")
         e.bind("<FocusOut>", lambda ev: self.store_opts())
-        ttk.Checkbutton(box2, text=t("시트 이름별 하위 폴더로 나누기"),
+        ttk.Checkbutton(box2, text=t("이름 접두어로 하위 폴더 만들기"),
                         variable=self.v_subdir,
                         command=self.update_export_ui).pack(anchor="w")
 
-        boxsel = ttk.LabelFrame(parent, text=t("상자 선택 (화면에서 드래그)"), padding=8)
-        boxsel.pack(fill="x", pady=(0, 6))
+        boxsel = self._section(parent, "boxsel", t("상자 선택 (화면에서 드래그)"))
         srow = ttk.Frame(boxsel)
         srow.pack(fill="x")
         ttk.Button(srow, text=t("전체 선택"), command=self.select_all_boxes,
@@ -1325,8 +1431,7 @@ class SpriteStudio:
         ttk.Button(boxsel, text=t("선택한 것만 담기"),
                    command=self.collect_selected).pack(fill="x", pady=(2, 0))
 
-        box3 = ttk.LabelFrame(parent, text=t("배치 탭으로 담기"), padding=8)
-        box3.pack(fill="x")
+        box3 = self._section(parent, "collect", t("배치 탭으로 담기"))
         ttk.Button(box3, text=t("선택 시트 담기"),
                    command=lambda: self.collect(False)).pack(fill="x")
         ttk.Button(box3, text=t("모든 시트 담기"),
@@ -1335,8 +1440,7 @@ class SpriteStudio:
         self.pool_lbl.pack(anchor="w")
 
     def _build_layout_options(self, parent):
-        box = ttk.LabelFrame(parent, text=t("배치 옵션"), padding=8)
-        box.pack(fill="x")
+        box = self._section(parent, "layout", t("배치 옵션"))
 
         r1 = ttk.Frame(box)
         r1.pack(fill="x", pady=1)
@@ -1366,8 +1470,7 @@ class SpriteStudio:
         ttk.Button(box, text=t("자동 배치"), command=self.auto_pack).pack(fill="x", pady=(6, 2))
         ttk.Button(box, text=t("격자 정렬"), command=self.grid_pack).pack(fill="x")
 
-        box2 = ttk.LabelFrame(parent, text=t("대기 목록"), padding=8)
-        box2.pack(fill="x", pady=6)
+        box2 = self._section(parent, "pool", t("대기 목록"))
         self.pool_lbl2 = ttk.Label(box2, text=t("대기 중: 0개"),
                                    font=(UI_FONT, 9, "bold"), foreground="#0a6")
         self.pool_lbl2.pack(anchor="w", pady=(0, 4))
@@ -1376,8 +1479,7 @@ class SpriteStudio:
                    command=self.remove_selected).pack(fill="x", pady=2)
         ttk.Button(box2, text=t("목록 비우기"), command=self.clear_pool).pack(fill="x")
 
-        box3 = ttk.LabelFrame(parent, text=t("함께 저장"), padding=8)
-        box3.pack(fill="x")
+        box3 = self._section(parent, "savejson", t("함께 저장"))
         ttk.Checkbutton(box3, text=t("좌표 JSON 파일"), variable=self.v_atlas,
                         command=self.update_export_ui).pack(anchor="w")
         ttk.Label(box3, text=t("엔진에서 프레임 위치를 읽을 때 필요합니다"),
@@ -1452,7 +1554,7 @@ class SpriteStudio:
                 text=t("선택 {a0}개 출력", a0=n) if (ready and self.sel1)
                 else (t("개별 이미지로 출력") if ready else t("시트를 등록하세요")))
             if ready:
-                folder = f"{short}\\{safe_name(s.name)}" if self.v_subdir.get() else short
+                folder = f"{short}\\{safe_name(s.prefix)}" if self.v_subdir.get() else short
                 self.export_hint.config(text=t("PNG {a0}장 · {a1}_000 …\n{a2}", a0=n, a1=s.prefix, a2=folder))
             else:
                 self.export_hint.config(text=t("시트를 등록하고 분리하면 출력할 수 있습니다"))
@@ -1606,6 +1708,7 @@ class SpriteStudio:
             "pot": self.v_pot.get(), "atlas": self.v_atlas.get(),
             "subdir": self.v_subdir.get(), "shownames": self.v_shownames.get(),
             "width": self.v_width.get().strip(),
+            "sections": dict(self._sec_open),
         }
         save_settings(self.settings)
 
@@ -1676,13 +1779,33 @@ class SpriteStudio:
         self.root.destroy()
 
     # -------------------------------------------------- 시트 등록 / 라이브러리
+    def drop_zone(self, event):
+        """파일을 어디에 놓았는지 본다. 어느 탭을 보고 있는지가 아니라 놓은 자리가 기준.
+
+        배치 탭을 보는 중에도 왼쪽 시트 목록에 놓으면 시트로 등록되어야 한다.
+        """
+        try:
+            w = self.root.winfo_containing(event.x_root, event.y_root)
+        except Exception:
+            w = None
+        while w is not None:
+            if w is self.lib_canvas or w is self.lib_inner:
+                return "library"
+            if w is self.lcanvas:
+                return "pool"
+            if w is self.canvas:
+                return "library"
+            w = getattr(w, "master", None)
+        # 창 바깥 테두리 등 애매한 자리는 지금 보고 있는 탭을 따른다
+        return "pool" if self.nb.index(self.nb.select()) == 1 else "library"
+
     def on_drop(self, event):
         paths = [p for p in parse_drop_paths(event.data) if p.lower().endswith(IMAGE_EXTS)]
         if not paths:
             self.log(t("이미지 파일이 아닙니다."))
             return
-        if self.nb.index(self.nb.select()) == 1:
-            self.add_pool_paths(paths)      # 배치 탭에 놓으면 대기 목록으로
+        if self.drop_zone(event) == "pool":
+            self.add_pool_paths(paths)      # 배치 화면에 놓으면 대기 목록으로
         else:
             self.add_sheets(paths)
 
@@ -2049,9 +2172,31 @@ class SpriteStudio:
             self.root.after_cancel(self._job)
         self._job = self.root.after(250, self.analyze)
 
-    def analyze(self):
+    def run_split(self):
+        """머리글의 [분리] 버튼. 지금 설정 그대로 곧바로 다시 분리한다.
+
+        슬라이더를 건드리지 않아도 결과를 바로 볼 수 있게 하는 수동 실행구.
+        한 번 누른 뒤로는 옵션을 바꿀 때마다 지금처럼 자동으로 다시 분리된다.
+        """
+        if not self.cur():
+            messagebox.showinfo(APP_NAME, t("먼저 시트를 등록하세요."))
+            return
+        if self.nb.index(self.nb.select()) != 0:
+            self.nb.select(0)
+        self.store_opts()
+        if self._job:
+            self.root.after_cancel(self._job)
+            self._job = None
+        self.analyze(force=True)
+
+    def analyze(self, force=False):
         s = self.cur()
-        if not s or self.busy:
+        if not s:
+            return
+        if self.busy and not force:
+            # 앞 분석이 아직 돌고 있다. 그냥 버리면 시트를 여러 장 한꺼번에
+            # 넣었을 때 감지가 통째로 빠지므로, 끝난 뒤 다시 시도한다.
+            self.schedule_analyze()
             return
         if s.atlas and s.opts.get("use_atlas"):     # 좌표가 이미 있으니 즉시 반영
             s.boxes = self.detect_for(s)
@@ -2064,6 +2209,8 @@ class SpriteStudio:
         self.status.config(text=t("분석 중…"))
         o = s.opts
         img, idx = s.img, self.active
+        self._analyze_gen += 1
+        gen = self._analyze_gen
         kw = dict(bg_color=(o["bg"] if o["use_bg"] else None), tol=o["tol"],
                   merge=o["merge"], min_area=o["min_area"], min_size=o["min_size"])
 
@@ -2072,11 +2219,13 @@ class SpriteStudio:
                 boxes, err = detect_boxes(img, **kw), None
             except Exception as e:
                 boxes, err = [], e
-            self.root.after(0, lambda: self.on_analyzed(idx, boxes, err))
+            self.root.after(0, lambda: self.on_analyzed(gen, idx, boxes, err))
 
         threading.Thread(target=work, daemon=True).start()
 
-    def on_analyzed(self, idx, boxes, err):
+    def on_analyzed(self, gen, idx, boxes, err):
+        if gen != self._analyze_gen:
+            return                      # 더 새 요청이 이미 돌고 있다
         self.busy = False
         if err:
             self.log(t("분석 오류: {a0}", a0=err))
@@ -2688,7 +2837,7 @@ class SpriteStudio:
 
     def _save_one(self, sheet, base, only=None):
         """only 가 주어지면 그 인덱스의 상자만 저장 (이름의 번호는 원래 것을 유지)."""
-        target = os.path.join(base, safe_name(sheet.name)) if self.v_subdir.get() else base
+        target = os.path.join(base, safe_name(sheet.prefix)) if self.v_subdir.get() else base
         os.makedirs(target, exist_ok=True)
         items = self.sheet_sprites(sheet, only)
         for im, name in items:
@@ -2709,6 +2858,8 @@ class SpriteStudio:
         self.log(t("{a0}: {a1}개 저장 → {a2}", a0=s.name, a1=n, a2=target)
                  + (t("  (선택한 것만)") if only else ""))
         self.status.config(text=t("{a0}개 저장 완료", a0=n))
+        messagebox.showinfo(APP_NAME, t("PNG {a0}장을 저장했습니다.\n\n{a1}",
+                                        a0=n, a1=target))
 
     def export_all(self):
         if not self.sheets:
@@ -2718,6 +2869,14 @@ class SpriteStudio:
         d = self.outdir()
         if not d:
             return
+        if self.v_subdir.get():           # 접두어가 겹치면 한 폴더에 섞인다
+            seen = {}
+            for s in self.sheets:
+                seen.setdefault(safe_name(s.prefix), []).append(s.name)
+            dupes = [k for k, v in seen.items() if len(v) > 1]
+            if dupes:
+                self.log(t("같은 접두어를 쓰는 시트가 있어 한 폴더에 섞입니다: {a0}",
+                           a0=', '.join(dupes[:3])))
         total = 0
         for i, s in enumerate(self.sheets):
             if not s.boxes:
@@ -2728,6 +2887,8 @@ class SpriteStudio:
             self.log(t("  {a0}: {a1}개", a0=s.name, a1=n))
         self.log(t("총 {a0}개 저장 → {a1}", a0=total, a1=d))
         self.status.config(text=t("{a0}장 / {a1}개 저장 완료", a0=len(self.sheets), a1=total))
+        messagebox.showinfo(APP_NAME, t("시트 {a0}장에서 PNG {a1}장을 저장했습니다.\n\n{a2}",
+                                        a0=len(self.sheets), a1=total, a2=d))
 
     def export_sheet(self):
         """화면에 보이는 배치 그대로 시트와 좌표 JSON 을 저장."""
@@ -2762,6 +2923,9 @@ class SpriteStudio:
             with open(os.path.splitext(path)[0] + ".json", "w", encoding="utf-8") as f:
                 json.dump(atlas, f, ensure_ascii=False, indent=2)
         self.log(t("새 시트 저장: {a0} ({a1}×{a2}, {a3}개)", a0=os.path.basename(path), a1=self.sheet_size[0], a2=self.sheet_size[1], a3=len(self.pool)))
+        messagebox.showinfo(APP_NAME, t("새 시트를 저장했습니다.\n\n{a0}\n{a1}×{a2} · 스프라이트 {a3}개",
+                                        a0=path, a1=self.sheet_size[0],
+                                        a2=self.sheet_size[1], a3=len(self.pool)))
 
     def log(self, msg):
         self.logbox.config(state="normal")
