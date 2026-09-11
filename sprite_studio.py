@@ -619,16 +619,36 @@ def auto_width(sizes, spacing=2, border=BORDER):
 
 
 def find_overlaps(rects):
-    """겹치는 항목들의 인덱스 집합. rects 는 [(x, y, w, h)]."""
+    """겹치는 항목들의 인덱스 집합. rects 는 [(x, y, w, h)].
+
+    모든 쌍을 비교하면 항목이 수천 개일 때 배치를 바꿀 때마다 눈에 띄게
+    멈춘다. 시트를 격자로 나눠 같은 칸에 걸친 것끼리만 비교한다.
+    """
     bad = set()
     n = len(rects)
-    for i in range(n):
-        ax, ay, aw, ah = rects[i]
-        for j in range(i + 1, n):
-            bx, by, bw, bh = rects[j]
-            if not (ax + aw <= bx or bx + bw <= ax or ay + ah <= by or by + bh <= ay):
-                bad.add(i)
-                bad.add(j)
+    if n < 2:
+        return bad
+
+    # 칸은 항목 크기의 중간값. 너무 잘게 나누면 등록 비용이 더 커진다.
+    cell = max(8, int(np.median([max(w, h) for _, _, w, h in rects])))
+    buckets = {}
+    for i, (x, y, w, h) in enumerate(rects):
+        for cy in range(y // cell, (y + max(1, h) - 1) // cell + 1):
+            for cx in range(x // cell, (x + max(1, w) - 1) // cell + 1):
+                buckets.setdefault((cx, cy), []).append(i)
+
+    for ids in buckets.values():
+        for a in range(len(ids) - 1):
+            i = ids[a]
+            ax, ay, aw, ah = rects[i]
+            for b in range(a + 1, len(ids)):
+                j = ids[b]
+                if i in bad and j in bad:
+                    continue                 # 둘 다 이미 겹침으로 찍혔다
+                bx, by, bw, bh = rects[j]
+                if not (ax + aw <= bx or bx + bw <= ax or ay + ah <= by or by + bh <= ay):
+                    bad.add(i)
+                    bad.add(j)
     return bad
 
 
@@ -961,14 +981,21 @@ class ViewState:
         return self.ox + x * self.scale, self.oy + y * self.scale
 
 
-def draw_image_view(canvas, img, view):
-    """보이는 부분만 잘라 그린다. 크게 확대해도 메모리를 화면 크기만큼만 쓴다."""
+def draw_image_view(canvas, view, size, crop_fn, fast=False):
+    """보이는 부분만 잘라 그린다. 크게 확대해도 메모리를 화면 크기만큼만 쓴다.
+
+    crop_fn 은 (x0, y0, x1, y1) 영역의 이미지를 돌려주는 함수다. 전체 이미지를
+    미리 만들어 둘 필요가 없으므로, 배치 탭은 보이는 영역만 그 자리에서 합성한다.
+    fast 는 확대/이동이 진행되는 동안 품질을 낮춰 빠르게 그리라는 뜻.
+    """
     cw = max(canvas.winfo_width(), 1)
     ch = max(canvas.winfo_height(), 1)
+    iw, ih = size
+    if iw <= 0 or ih <= 0:
+        return None
     if view.auto:
-        view.fit(cw, ch, img.size)
+        view.fit(cw, ch, size)
     s, ox, oy = view.scale, view.ox, view.oy
-    iw, ih = img.size
 
     sx0 = max(0, int((0 - ox) / s))
     sy0 = max(0, int((0 - oy) / s))
@@ -977,10 +1004,14 @@ def draw_image_view(canvas, img, view):
     if sx1 <= sx0 or sy1 <= sy0:
         return None                      # 이미지가 화면 밖으로 완전히 나감
 
-    crop = img.crop((sx0, sy0, sx1, sy1))
+    crop = crop_fn((sx0, sy0, sx1, sy1))
     dw = max(1, int(round((sx1 - sx0) * s)))
     dh = max(1, int(round((sy1 - sy0) * s)))
-    disp = crop.resize((dw, dh), Image.NEAREST if s >= 1 else Image.LANCZOS)
+    if s >= 1:
+        resample = Image.NEAREST
+    else:
+        resample = Image.BILINEAR if fast else Image.LANCZOS
+    disp = crop.resize((dw, dh), resample)
 
     px, py = ox + sx0 * s, oy + sy0 * s
     base = make_checker(dw, dh, 8, int(px), int(py))
@@ -1056,9 +1087,13 @@ class SpriteStudio:
         self.pool = []              # [PoolItem]
         self.sel = set()            # 배치 탭에서 선택된 인덱스
         self.sheet_size = (0, 0)
-        self.layout_img = None
+        self.layout_img = None      # 저장할 때만 합성하는 전체 시트
         self.preview_tk = None
         self.layout_tk = None
+        self._overlaps = set()      # 겹친 항목 인덱스. 배치가 바뀔 때만 다시 계산
+        self._fast_view = False     # 확대/이동 중에는 품질을 낮춰 그린다
+        self._render_jobs = {}      # 한 프레임으로 묶어 둔 그리기 예약
+        self._polish_jobs = {}      # 손을 멈춘 뒤 고품질로 다시 그리는 예약
         self.view1 = ViewState()        # 탭1 시트 미리보기 확대/이동
         self.view2 = ViewState()        # 탭2 배치 화면 확대/이동
         self.sel1 = set()               # 탭1에서 선택된 상자
@@ -1487,15 +1522,45 @@ class SpriteStudio:
     def _on_wheel(self, event):
         self.lib_canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
 
+    def _coalesced(self, redraw_fn):
+        """확대/이동 이벤트를 한 프레임으로 묶어 주는 그리기 함수를 만든다.
+
+        휠과 드래그는 초당 수십~수백 번 들어오는데, 그때마다 화면을 전부 다시
+        그리면 시트가 클수록 이벤트가 밀린다. 16ms 안의 이벤트는 한 번으로
+        합치고 그동안은 품질을 낮춰 그린 뒤, 손을 멈추면 고품질로 다시 그린다.
+        """
+        def run():
+            self._render_jobs.pop(redraw_fn, None)
+            self._fast_view = True
+            try:
+                redraw_fn()
+            finally:
+                self._fast_view = False
+            job = self._polish_jobs.pop(redraw_fn, None)
+            if job:
+                self.root.after_cancel(job)
+            self._polish_jobs[redraw_fn] = self.root.after(150, polish)
+
+        def polish():
+            self._polish_jobs.pop(redraw_fn, None)
+            redraw_fn()
+
+        def schedule():
+            if redraw_fn not in self._render_jobs:
+                self._render_jobs[redraw_fn] = self.root.after(16, run)
+
+        return schedule
+
     def _bind_view(self, canvas, view, redraw_fn):
         """휠 확대, 가운데/오른쪽 버튼 드래그로 화면 이동."""
-        canvas.bind("<MouseWheel>", lambda e: self.wheel_zoom(e, view, redraw_fn))
-        canvas.bind("<Button-4>", lambda e: self.wheel_zoom(e, view, redraw_fn))
-        canvas.bind("<Button-5>", lambda e: self.wheel_zoom(e, view, redraw_fn))
+        draw = self._coalesced(redraw_fn)
+        canvas.bind("<MouseWheel>", lambda e: self.wheel_zoom(e, view, draw))
+        canvas.bind("<Button-4>", lambda e: self.wheel_zoom(e, view, draw))
+        canvas.bind("<Button-5>", lambda e: self.wheel_zoom(e, view, draw))
         for btn in (2, 3):
             canvas.bind(f"<ButtonPress-{btn}>", lambda e, c=canvas: self.pan_start(e, c))
             canvas.bind(f"<B{btn}-Motion>",
-                        lambda e, c=canvas: self.pan_move(e, view, c, redraw_fn))
+                        lambda e, c=canvas: self.pan_move(e, view, c, draw))
             canvas.bind(f"<ButtonRelease-{btn}>",
                         lambda e, c=canvas: self.pan_end(c, "hand2" if c is self.lcanvas else ""))
 
@@ -2058,7 +2123,8 @@ class SpriteStudio:
 
         cw = max(self.canvas.winfo_width(), 1)
         ch = max(self.canvas.winfo_height(), 1)
-        self.preview_tk = draw_image_view(self.canvas, s.img, self.view1)
+        self.preview_tk = draw_image_view(self.canvas, self.view1, s.img.size,
+                                          s.img.crop, self._fast_view)
         v, sc = self.view1, self.view1.scale
 
         for i, (x0, y0, x1, y1) in enumerate(s.boxes):
@@ -2304,10 +2370,8 @@ class SpriteStudio:
 
     def clear_pool(self):
         self.pool, self.sel = [], set()
-        self.sheet_size = (0, 0)
-        self.layout_img = None
         self.log(t("대기 목록을 비웠습니다."))
-        self.render_layout()
+        self.recompute_size()
 
     def remove_selected(self):
         if not self.sel:
@@ -2317,8 +2381,7 @@ class SpriteStudio:
         self.pool = [p for i, p in enumerate(self.pool) if i not in self.sel]
         self.sel = set()
         self.log(t("{a0}개 제거: {a1}{a2}", a0=len(names), a1=', '.join(names[:4]), a2=' …' if len(names) > 4 else ''))
-        self.rebuild_image()
-        self.render_layout()
+        self.recompute_size()
 
     def sort_pool_by_position(self):
         """화면에 놓인 위치대로(위→아래, 왼쪽→오른쪽) 목록 순서를 맞춘다."""
@@ -2363,11 +2426,16 @@ class SpriteStudio:
         self.log(t("격자 정렬: {a0}개 (화면에 놓인 순서 기준)", a0=len(self.pool)))
         self.recompute_size()
 
+    def refresh_overlaps(self):
+        """겹침을 다시 계산한다. 배치나 목록 순서가 바뀔 때만 부르면 된다."""
+        self._overlaps = find_overlaps([p.rect() for p in self.pool])
+
     def recompute_size(self):
         """배치된 내용에 맞춰 시트 크기를 다시 계산하고 화면을 갱신."""
+        self.layout_img = None          # 합성은 저장할 때 한 번만 한다
         if not self.pool:
             self.sheet_size = (0, 0)
-            self.layout_img = None
+            self._overlaps = set()
             self.render_layout()
             return
         W = max(p.x + p.w for p in self.pool) + BORDER
@@ -2375,19 +2443,39 @@ class SpriteStudio:
         if self.v_pot.get():
             W, H = next_pot(W), next_pot(H)
         self.sheet_size = (W, H)
-        self.rebuild_image()
+        self.refresh_overlaps()
         self.render_layout()
 
+    def compose_region(self, box):
+        """시트에서 보이는 영역만 그 자리에서 합성한다.
+
+        전체 시트를 합성하면 4096×4096 에서 한 번에 67MB 를 새로 만들고 모든
+        스프라이트를 다시 붙여야 해서, 하나를 몇 픽셀 옮길 때마다 눈에 보이게
+        멈춘다. 어차피 화면에 보이는 부분만 쓰이므로 비용을 화면 크기에만
+        비례하게 만들어, 시트가 커져도 반응이 같게 한다.
+        """
+        x0, y0, x1, y1 = box
+        region = Image.new("RGBA", (x1 - x0, y1 - y0), (0, 0, 0, 0))
+        for p in self.pool:
+            if p.x + p.w <= x0 or p.x >= x1 or p.y + p.h <= y0 or p.y >= y1:
+                continue
+            sx, sy = max(0, x0 - p.x), max(0, y0 - p.y)      # 스프라이트 안의 잘림
+            ex, ey = min(p.w, x1 - p.x), min(p.h, y1 - p.y)
+            region.alpha_composite(p.img, (p.x + sx - x0, p.y + sy - y0),
+                                   (sx, sy, ex, ey))
+        return region
+
     def rebuild_image(self):
-        """현재 배치대로 시트 이미지를 합성해 둔다 (미리보기 및 저장 공용)."""
+        """현재 배치대로 시트 전체를 합성한다 (저장할 때만 쓴다)."""
         W, H = self.sheet_size
         if not self.pool or W <= 0 or H <= 0:
             self.layout_img = None
-            return
+            return None
         img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         for p in self.pool:
             img.alpha_composite(p.img, (p.x, p.y))
         self.layout_img = img
+        return img
 
     def render_layout(self):
         self.lcanvas.delete("all")
@@ -2404,15 +2492,16 @@ class SpriteStudio:
             self.update_export_ui()
             return
 
-        if self.layout_img is None:
+        W, H = self.sheet_size
+        if W <= 0 or H <= 0:
             self.recompute_size()
             return
 
-        W, H = self.sheet_size
-        self.layout_tk = draw_image_view(self.lcanvas, self.layout_img, self.view2)
+        self.layout_tk = draw_image_view(self.lcanvas, self.view2, self.sheet_size,
+                                         self.compose_region, self._fast_view)
         v, sc = self.view2, self.view2.scale
 
-        bad = find_overlaps([p.rect() for p in self.pool])
+        bad = self._overlaps            # 배치가 바뀔 때 계산해 둔 결과를 쓴다
         for i, p in enumerate(self.pool):
             x0, y0 = v.to_canvas(p.x, p.y)
             x1, y1 = v.to_canvas(p.x + p.w, p.y + p.h)
@@ -2425,7 +2514,7 @@ class SpriteStudio:
             else:
                 color, width = ACCENT, 1
             self.lcanvas.create_rectangle(x0, y0, x1, y1, outline=color, width=width)
-            if self.v_shownames.get() and sc > 0.35:
+            if self.v_shownames.get() and sc > 0.35 and not self._fast_view:
                 self.lcanvas.create_text(x0 + 2, y0 - 7, text=f"{i}:{p.name}",
                                          fill=color, anchor="w", font=("Consolas", 8))
 
@@ -2642,10 +2731,10 @@ class SpriteStudio:
 
     def export_sheet(self):
         """화면에 보이는 배치 그대로 시트와 좌표 JSON 을 저장."""
-        if not self.pool or self.layout_img is None:
+        if not self.pool:
             messagebox.showinfo(APP_NAME, t("대기 목록이 비어 있습니다. 1번 탭에서 '담기'를 먼저 눌러주세요."))
             return
-        bad = find_overlaps([p.rect() for p in self.pool])
+        bad = self._overlaps
         if bad and not messagebox.askyesno(
                 APP_NAME, t("겹친 항목이 {a0}개 있습니다. 그대로 저장할까요?", a0=len(bad))):
             return
@@ -2654,12 +2743,16 @@ class SpriteStudio:
             return
         self.sort_pool_by_position()      # JSON 프레임 순서를 화면과 일치시킴
         self.sel = set()
+        self.refresh_overlaps()           # 순서가 바뀌었으니 인덱스를 맞춘다
         path = filedialog.asksaveasfilename(
             title=t("새 시트 저장"), initialdir=d, initialfile="packed_sheet.png",
             defaultextension=".png", filetypes=[("PNG", "*.png")])
         if not path:
             return
-        self.layout_img.save(path)
+        img = self.rebuild_image()        # 저장 직전에 전체 시트를 한 번만 합성
+        if img is None:
+            return
+        img.save(path)
         if self.v_atlas.get():
             atlas = {"image": os.path.basename(path),
                      "size": {"w": self.sheet_size[0], "h": self.sheet_size[1]},
