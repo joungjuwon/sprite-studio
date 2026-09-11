@@ -6,6 +6,10 @@
 
 한국어 · English · 日本語를 지원합니다.
 
+## 다운로드
+
+설치 없이 바로 쓰려면 [최신 릴리스](https://github.com/joungjuwon/sprite-studio/releases/latest)에서 `SpriteStudio.exe`를 받으세요.
+
 ## 주요 기능
 
 - **자동 분리** — 투명 배경과 단색 배경 모두 지원. 슬라이더로 결과를 실시간 조정
