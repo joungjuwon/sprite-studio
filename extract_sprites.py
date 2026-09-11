@@ -178,16 +178,16 @@ def parse_size(s):
 
 
 def main():
-    p = argparse.ArgumentParser(description="스프라이트 시트를 개별 이미지로 분리")
+    p = argparse.ArgumentParser(description="스프라이트 시트에서 스프라이트를 추출")
     p.add_argument("sheet", help="입력 스프라이트 시트 이미지")
-    p.add_argument("-o", "--outdir", default="sprites", help="출력 폴더")
+    p.add_argument("-o", "--outdir", default="sprites", help="저장 폴더")
     p.add_argument("--prefix", default="sprite", help="파일 이름 접두어")
     p.add_argument("--mode", choices=["auto", "grid"], default="auto")
     # auto 모드
     p.add_argument("--bg-color", help="배경색 R,G,B (불투명 배경일 때)")
-    p.add_argument("--tol", type=int, default=10, help="배경색 허용 오차")
-    p.add_argument("--merge", type=int, default=0, help="이 픽셀 거리 안의 덩어리는 하나로 묶음")
-    p.add_argument("--min-area", type=int, default=4, help="이보다 작은 덩어리는 노이즈로 버림")
+    p.add_argument("--tol", type=int, default=10, help="배경색 허용 범위")
+    p.add_argument("--merge", type=int, default=0, help="이 픽셀 거리 안의 조각은 하나로 합침")
+    p.add_argument("--min-area", type=int, default=4, help="이보다 작은 조각은 노이즈로 버림")
     p.add_argument("--min-size", type=int, default=2, help="가로/세로가 이보다 작으면 버림")
     # 격자 모드
     p.add_argument("--cell", type=parse_size, help="셀 크기, 예: 32x32")

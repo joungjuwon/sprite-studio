@@ -54,8 +54,8 @@ def t(key, **kw):
 
 TRANSLATIONS = {
     "en": {
-        "분리": "Split",
-        "분리 옵션": "Split options",
+        "추출": "Extract",
+        "추출 옵션": "Extract options",
         "선택한 시트에만 적용됩니다": "Applies to the selected sheet only",
         "이름 접두어로 하위 폴더 만들기": "Make a subfolder named after the prefix",
         "먼저 시트를 등록하세요.": "Register a sheet first.",
@@ -70,8 +70,8 @@ TRANSLATIONS = {
         "   ·   겹침 {a0}개": "   ·   {a0} overlapping",
         "   ⚠ 빨간 테두리는 서로 겹친 항목입니다": "   ⚠ Red outlines are overlapping",
         "  (선택한 것만)": "  (selection only)",
-        "  1. 시트 분리  ": "  1. Split sheet  ",
-        "  2. 새 시트 배치  ": "  2. Arrange sheet  ",
+        "  1. 스프라이트 추출  ": "  1. Extract  ",
+        "  2. 새 시트 만들기  ": "  2. Build sheet  ",
         "  {a0}: {a1}개": "  {a0}: {a1}",
         " 외": " and more",
         "'{a0}' 설정을 {a1}장에 복사했습니다.": "Copied settings from '{a0}' to {a1} sheet(s).",
@@ -85,7 +85,7 @@ TRANSLATIONS = {
         "tkinterdnd2 미설치 → 드래그앤드롭 꺼짐. '시트 추가' 버튼을 쓰거나 python -m pip install tkinterdnd2 로 설치하세요.":
             "tkinterdnd2 is missing, so drag and drop is off. Use the 'Add sheets' button, "
             "or install it with: python -m pip install tkinterdnd2",
-        "{a0}  ({a1}개) → 배치 탭에 놓기": "{a0}  ({a1}) → drop on the Arrange tab",
+        "{a0}  ({a1}개) → 2번 탭에 놓기": "{a0}  ({a1}) → drop on tab 2",
         "{a0} · {a1}프레임": "{a0} · {a1} frames",
         "{a0} 준비 완료. 시트 이미지를 창에 끌어다 놓으세요 (여러 장 동시 가능).":
             "{a0} is ready. Drop sheet images onto the window (several at once is fine).",
@@ -102,7 +102,7 @@ TRANSLATIONS = {
             "{a0} selected  ·  drag any of them to move together  ·  Del removes them all",
         "{a0}개 이동 ({a1:+d}, {a2:+d})": "moved {a0} by ({a1:+d}, {a2:+d})",
         "{a0}개 이동 → ({a1:+d}, {a2:+d})": "moving {a0} → ({a1:+d}, {a2:+d})",
-        "{a0}개 이미지를 대기 목록에 추가 (총 {a1}개)": "Added {a0} images to the queue (total {a1})",
+        "{a0}개 이미지를 새 시트에 추가 (총 {a1}개)": "Added {a0} images to the new sheet (total {a1})",
         "{a0}개 저장 완료": "Saved {a0} files",
         "{a0}개 제거: {a1}{a2}": "Removed {a0}: {a1}{a2}",
         "{a0}개 중 {a1}개 선택됨  ·  {a2}  ·  빈 곳 드래그=범위 선택, 휠=확대, 가운데/오른쪽 드래그=이동, 더블클릭=화면 맞춤":
@@ -113,99 +113,99 @@ TRANSLATIONS = {
         "{a0}장 / {a1}개 저장 완료": "{a0} sheets / {a1} files saved",
         "{a0}장 등록 (총 {a1}장)": "Registered {a0} (total {a1})",
         "간격(px)": "Spacing (px)",
-        "개별 이미지로 출력": "Export individual images",
+        "개별 이미지로 내보내기": "Export individual images",
         "격자 정렬": "Grid align",
         "격자 정렬: {a0}개 (화면에 놓인 순서 기준)": "Grid align: {a0} (by on-screen order)",
         "겹친 항목이 {a0}개 있습니다. 그대로 저장할까요?": "{a0} items overlap. Save anyway?",
         "단색 배경": "Solid background",
-        "담기": "Add",
-        "담긴 것이 없습니다": "Nothing queued",
-        "담을 스프라이트가 없습니다. 먼저 시트를 분리하세요.":
-            "No sprites to add. Split a sheet first.",
-        "대기 목록": "Queue",
-        "대기 목록을 비웠습니다.": "Cleared the queue.",
-        "대기 목록이 비어 있습니다": "The queue is empty",
-        "대기 목록이 비어 있습니다. 1번 탭에서 '담기'를 먼저 눌러주세요.":
-            "The queue is empty. Press 'Add' on tab 1 first.",
-        "대기 중": "Idle",
-        "대기 중: 0개": "Queued: 0",
-        "대기 중: {a0}개": "Queued: {a0}",
-        "덩어리 묶기(px)": "Merge gap (px)",
+        "추가": "Add",
+        "추가된 것이 없습니다": "Nothing added",
+        "추가할 스프라이트가 없습니다. 먼저 시트에서 추출하세요.":
+            "No sprites to add. Extract from a sheet first.",
+        "새 시트 구성": "Sheet contents",
+        "목록을 비웠습니다.": "Cleared the list.",
+        "추가된 스프라이트가 없습니다": "No sprites added yet",
+        "추가된 스프라이트가 없습니다. 1번 탭에서 '추가'를 먼저 눌러주세요.":
+            "No sprites added yet. Press 'Add' on tab 1 first.",
+        "준비됨": "Ready",
+        "스프라이트 0개": "0 sprites",
+        "스프라이트 {a0}개": "{a0} sprites",
+        "조각 합치기(px)": "Merge gap (px)",
         "드래그 이동 단위": "drag step",
         "드래그로": "Drag",
         "등록된 시트 (0)": "Sheets (0)",
         "등록된 시트 ({a0})": "Sheets ({a0})",
         "등록된 시트가 없습니다.": "No sheets registered.",
         "등록된 시트를 모두 지울까요?": "Remove every registered sheet?",
-        "먼저 시트를 등록하고 분리하세요.": "Register and split a sheet first.",
+        "먼저 시트를 등록하고 추출하세요.": "Register a sheet and extract first.",
         "먼저 시트를 선택하세요.": "Select a sheet first.",
-        "먼저 화면에서 상자를 선택하세요 (빈 곳을 드래그하면 범위 선택).":
-            "Select boxes on the canvas first (drag empty space for box select).",
-        "모든 시트 담기": "Add all sheets",
-        "모든 시트 한 번에 출력": "Export every sheet at once",
+        "먼저 화면에서 스프라이트를 선택하세요 (빈 곳을 드래그하면 범위 선택).":
+            "Select sprites on the canvas first (drag empty space for box select).",
+        "모든 시트 추가": "Add all sheets",
+        "모든 시트 한 번에 내보내기": "Export every sheet at once",
         "모든 파일": "All files",
-        "목록 비우기": "Clear queue",
+        "목록 비우기": "Clear list",
         "무제": "Untitled",
-        "배경 허용 오차": "Bg tolerance",
+        "배경색 허용 범위": "Background tolerance",
         "배경색 = RGB{a0}": "Background = RGB{a0}",
         "배경으로 쓸 픽셀을 클릭하세요": "Click a pixel to use as the background",
-        "배치 옵션": "Arrange options",
-        "배치 탭(2번) 화면이나 탭 머리글 위에 놓아야 담깁니다.":
-            "Drop it on the Arrange tab (2) canvas or on its tab header.",
-        "배치 탭으로 담기": "Send to Arrange tab",
+        "배치 옵션": "Layout options",
+        "2번 탭 화면이나 탭 머리글 위에 놓아야 추가됩니다.":
+            "Drop it on the tab 2 canvas or on its tab header.",
+        "새 시트에 추가": "Add to new sheet",
         "범위 선택: {a0}개": "Box select: {a0}",
-        "분리 옵션 (선택한 시트에만 적용)": "Split options (current sheet only)",
+        "추출 옵션 (선택한 시트에만 적용)": "Extract options (current sheet only)",
         "분석 오류: {a0}": "Analysis error: {a0}",
         "분석 중…": "Analyzing…",
         "불러오기…": "Load…",
         "비우면 자동": "blank = auto",
-        "상자 선택 (화면에서 드래그)": "Box selection (drag on canvas)",
+        "스프라이트 선택 (화면에서 드래그)": "Sprite selection (drag on canvas)",
         "새 시트 {a0}×{a1}   ·   {a2}개   ·   {a3:.0f}%{a4}":
             "New sheet {a0}×{a1}   ·   {a2} items   ·   {a3:.0f}%{a4}",
         "새 시트 저장": "Save new sheet",
         "새 시트 저장: {a0} ({a1}×{a2}, {a3}개)": "Saved new sheet: {a0} ({a1}×{a2}, {a3} items)",
-        "새 시트로 출력": "Export new sheet",
+        "새 시트로 내보내기": "Export new sheet",
         "새 시트에 넣을 이미지 선택": "Choose images for the new sheet",
         "색": "Color",
-        "선택 {a0}개 출력": "Export {a0} selected",
-        "선택 담기: {a0} → {a1}개 추가 (총 {a2}개)": "Added selection: {a0} → {a1} (total {a2})",
-        "선택 시트 담기": "Add current sheet",
+        "선택 {a0}개 내보내기": "Export {a0} selected",
+        "선택 추가: {a0} → {a1}개 (총 {a2}개)": "Added selection: {a0} → {a1} (total {a2})",
+        "이 시트 추가": "Add this sheet",
         "선택 시트 제거": "Remove current sheet",
         "선택 제거 (Del)": "Remove selected (Del)",
         "선택 해제": "Deselect",
-        "선택한 것만 담기": "Add selection only",
-        "선택한 상자 제외": "Exclude selected boxes",
+        "선택만 추가": "Add selection only",
+        "선택한 스프라이트 제외": "Exclude selected sprites",
         "스냅(px)": "Snap (px)",
         "스포이트": "Picker",
         "스프라이트 시트 선택 (여러 개 가능)": "Choose sprite sheets (several allowed)",
-        "스프라이트를 담고 자동 배치를 눌러보세요": "Add sprites, then press Auto pack",
+        "스프라이트를 추가하고 자동 배치를 눌러보세요": "Add sprites, then press Auto pack",
         "시트 목록을 비웠습니다. (다음 실행 때도 비어 있습니다)":
             "Cleared the sheet list. (it stays empty next launch)",
         "시트 이름별 하위 폴더로 나누기": "Separate folder per sheet name",
         "시트 추가…": "Add sheets…",
-        "시트를 등록하고 분리하면 출력할 수 있습니다": "Register and split a sheet to export",
+        "시트를 등록하고 추출하면 내보낼 수 있습니다": "Register a sheet and extract to export",
         "시트를 등록하세요": "Register a sheet",
-        "썸네일을 2번 탭으로 끌어다 놓으면 담깁니다": "Drag a thumbnail onto tab 2 to queue it",
+        "썸네일을 2번 탭으로 끌어다 놓으면 추가됩니다": "Drag a thumbnail onto tab 2 to add it",
         "알 수 없음": "unknown",
         "없음 - 픽셀로 자동 감지 중": "None - detecting from pixels",
         "엔진에서 프레임 위치를 읽을 때 필요합니다": "Needed to read frame positions in your engine",
         "여기에 시트 이미지를 끌어다 놓으세요": "Drop a sheet image here",
         "여백(px)": "Padding (px)",
         "열기 실패 {a0}: {a1}": "Could not open {a0}: {a1}",
-        "왼쪽 시트 썸네일을 이 화면으로 끌어다 놓거나\n1번 탭에서 '담기'를 누르세요\n(낱장 이미지 파일도 여기로 놓을 수 있습니다)":
+        "왼쪽 시트 썸네일을 이 화면으로 끌어다 놓거나\n1번 탭에서 '추가'를 누르세요\n(낱장 이미지 파일도 여기로 놓을 수 있습니다)":
             "Drag a sheet thumbnail here from the left,\nor press 'Add' on tab 1\n"
             "(single image files can be dropped here too)",
         "왼쪽 썸네일을 이 탭으로 끌어다 놓으세요": "Drag a thumbnail from the left onto this tab",
         "이 설정을 모든 시트에 적용": "Apply these settings to all sheets",
         "이름 접두어": "Name prefix",
-        "이름표 표시": "Show name labels",
+        "이름 표시": "Show names",
         "이미 등록됨: {a0}": "Already registered: {a0}",
         "이미지": "Images",
         "이미지 추가…": "Add images…",
         "이미지 파일이 아닙니다.": "That is not an image file.",
         "자동 배치": "Auto pack",
         "자동 배치: {a0}개": "Auto pack: {a0}",
-        "잘라내기 방식": "Crop options",
+        "잘라내기 · 파일 이름": "Crop and naming",
         "저장 폴더": "Output folder",
         "저장 폴더 선택": "Choose the output folder",
         "저장 폴더를 먼저 지정하세요.": "Set an output folder first.",
@@ -214,7 +214,7 @@ TRANSLATIONS = {
         "정사각형으로 크기 통일": "Pad all to equal squares",
         "제거: {a0}": "Removed: {a0}",
         "제거할 항목을 먼저 클릭해서 선택하세요": "Click to select the items you want to remove",
-        "제외할 상자를 먼저 선택하세요.": "Select the boxes you want to exclude first.",
+        "제외할 스프라이트를 먼저 선택하세요.": "Select the sprites you want to exclude first.",
         "좌표 JSON 파일": "Coordinate JSON file",
         "좌표 파일": "Atlas files",
         "좌표 파일 (아틀라스)": "Atlas file",
@@ -229,9 +229,9 @@ TRANSLATIONS = {
         "직접 추가": "added directly",
         "총 {a0}개 저장 → {a1}": "Saved {a0} files → {a1}",
         "최대 너비": "Max width",
-        "최소 크기(px)": "Min size (px)",
+        "최소 가로·세로(px)": "Min width/height (px)",
         "최소 픽셀 수": "Min pixel count",
-        "출력": "Export",
+        "내보내기": "Export",
         "출처: {a0}{a1}   ·   빈 곳 드래그=범위 선택, 휠=확대, 가운데 드래그=이동":
             "From: {a0}{a1}   ·   drag empty space=box select, wheel=zoom, middle drag=pan",
         "트리밍 {a0}": "trimmed {a0}",
@@ -242,15 +242,15 @@ TRANSLATIONS = {
         "폴더를 만들 수 없습니다.\n{a0}": "Could not create the folder.\n{a0}",
         "프레임 정보를 찾지 못했습니다.": "No frame data found.",
         "픽셀 자동 감지": "pixel detection",
-        "함께 저장": "Save alongside",
+        "좌표 파일 함께 저장": "Save coordinates too",
         "해제": "Unlink",
         "회전 {a0}": "rotated {a0}",
         "회전 방향 반대로 (그림이 뒤집혀 나올 때)": "Flip rotation (if sprites come out sideways)",
         "언어": "Language",
     },
     "ja": {
-        "분리": "分割",
-        "분리 옵션": "分割オプション",
+        "추출": "抽出",
+        "추출 옵션": "抽出オプション",
         "선택한 시트에만 적용됩니다": "選択中のシートにのみ適用されます",
         "이름 접두어로 하위 폴더 만들기": "名前の接頭辞でサブフォルダーを作る",
         "먼저 시트를 등록하세요.": "先にシートを登録してください。",
@@ -265,8 +265,8 @@ TRANSLATIONS = {
         "   ·   겹침 {a0}개": "   ·   重なり {a0}個",
         "   ⚠ 빨간 테두리는 서로 겹친 항목입니다": "   ⚠ 赤い枠は重なっている項目です",
         "  (선택한 것만)": "  (選択分のみ)",
-        "  1. 시트 분리  ": "  1. シート分割  ",
-        "  2. 새 시트 배치  ": "  2. 新シート配置  ",
+        "  1. 스프라이트 추출  ": "  1. スプライト抽出  ",
+        "  2. 새 시트 만들기  ": "  2. 新シート作成  ",
         "  {a0}: {a1}개": "  {a0}: {a1}個",
         " 외": " ほか",
         "'{a0}' 설정을 {a1}장에 복사했습니다.": "'{a0}' の設定を {a1} 枚にコピーしました。",
@@ -280,7 +280,7 @@ TRANSLATIONS = {
         "tkinterdnd2 미설치 → 드래그앤드롭 꺼짐. '시트 추가' 버튼을 쓰거나 python -m pip install tkinterdnd2 로 설치하세요.":
             "tkinterdnd2 が未インストールのため、ドラッグ＆ドロップは無効です。"
             "「シート追加」ボタンを使うか、python -m pip install tkinterdnd2 でインストールしてください。",
-        "{a0}  ({a1}개) → 배치 탭에 놓기": "{a0}  ({a1}個) → 配置タブにドロップ",
+        "{a0}  ({a1}개) → 2번 탭에 놓기": "{a0}  ({a1}個) → 2番タブにドロップ",
         "{a0} · {a1}프레임": "{a0} · {a1} フレーム",
         "{a0} 준비 완료. 시트 이미지를 창에 끌어다 놓으세요 (여러 장 동시 가능).":
             "{a0} の準備ができました。シート画像をウィンドウにドロップしてください（複数同時可）。",
@@ -297,7 +297,7 @@ TRANSLATIONS = {
             "{a0}個選択中  ·  ドラッグすると一緒に動きます  ·  Del でまとめて削除",
         "{a0}개 이동 ({a1:+d}, {a2:+d})": "{a0}個を移動 ({a1:+d}, {a2:+d})",
         "{a0}개 이동 → ({a1:+d}, {a2:+d})": "{a0}個を移動 → ({a1:+d}, {a2:+d})",
-        "{a0}개 이미지를 대기 목록에 추가 (총 {a1}개)": "{a0}枚を待機リストに追加 (合計 {a1}個)",
+        "{a0}개 이미지를 새 시트에 추가 (총 {a1}개)": "{a0}枚を新シートに追加 (合計 {a1}個)",
         "{a0}개 저장 완료": "{a0}個を保存しました",
         "{a0}개 제거: {a1}{a2}": "{a0}個を削除: {a1}{a2}",
         "{a0}개 중 {a1}개 선택됨  ·  {a2}  ·  빈 곳 드래그=범위 선택, 휠=확대, 가운데/오른쪽 드래그=이동, 더블클릭=화면 맞춤":
@@ -308,99 +308,99 @@ TRANSLATIONS = {
         "{a0}장 / {a1}개 저장 완료": "{a0}枚 / {a1}個を保存しました",
         "{a0}장 등록 (총 {a1}장)": "{a0}枚を登録 (合計 {a1}枚)",
         "간격(px)": "間隔(px)",
-        "개별 이미지로 출력": "個別画像として出力",
+        "개별 이미지로 내보내기": "個別画像として出力",
         "격자 정렬": "グリッド整列",
         "격자 정렬: {a0}개 (화면에 놓인 순서 기준)": "グリッド整列: {a0}個 (画面上の並び順)",
         "겹친 항목이 {a0}개 있습니다. 그대로 저장할까요?": "{a0}個が重なっています。このまま保存しますか？",
         "단색 배경": "単色背景",
-        "담기": "追加",
-        "담긴 것이 없습니다": "待機リストが空です",
-        "담을 스프라이트가 없습니다. 먼저 시트를 분리하세요.":
-            "追加するスプライトがありません。先にシートを分割してください。",
-        "대기 목록": "待機リスト",
-        "대기 목록을 비웠습니다.": "待機リストを空にしました。",
-        "대기 목록이 비어 있습니다": "待機リストは空です",
-        "대기 목록이 비어 있습니다. 1번 탭에서 '담기'를 먼저 눌러주세요.":
-            "待機リストが空です。1番タブで「追加」を押してください。",
-        "대기 중": "待機中",
-        "대기 중: 0개": "待機中: 0個",
-        "대기 중: {a0}개": "待機中: {a0}個",
-        "덩어리 묶기(px)": "かたまり結合(px)",
+        "추가": "追加",
+        "추가된 것이 없습니다": "追加されたものがありません",
+        "추가할 스프라이트가 없습니다. 먼저 시트에서 추출하세요.":
+            "追加するスプライトがありません。先にシートから抽出してください。",
+        "새 시트 구성": "新シートの構成",
+        "목록을 비웠습니다.": "リストを空にしました。",
+        "추가된 스프라이트가 없습니다": "追加されたスプライトがありません",
+        "추가된 스프라이트가 없습니다. 1번 탭에서 '추가'를 먼저 눌러주세요.":
+            "追加されたスプライトがありません。1番タブで「追加」を押してください。",
+        "준비됨": "準備完了",
+        "스프라이트 0개": "スプライト 0個",
+        "스프라이트 {a0}개": "スプライト {a0}個",
+        "조각 합치기(px)": "断片を結合(px)",
         "드래그 이동 단위": "ドラッグ移動単位",
         "드래그로": "ドラッグ",
         "등록된 시트 (0)": "登録シート (0)",
         "등록된 시트 ({a0})": "登録シート ({a0})",
         "등록된 시트가 없습니다.": "登録されたシートがありません。",
         "등록된 시트를 모두 지울까요?": "登録シートをすべて削除しますか？",
-        "먼저 시트를 등록하고 분리하세요.": "先にシートを登録して分割してください。",
+        "먼저 시트를 등록하고 추출하세요.": "先にシートを登録して抽出してください。",
         "먼저 시트를 선택하세요.": "先にシートを選択してください。",
-        "먼저 화면에서 상자를 선택하세요 (빈 곳을 드래그하면 범위 선택).":
-            "先に画面で枠を選択してください（空白をドラッグで範囲選択）。",
-        "모든 시트 담기": "全シートを追加",
-        "모든 시트 한 번에 출력": "全シートを一括出力",
+        "먼저 화면에서 스프라이트를 선택하세요 (빈 곳을 드래그하면 범위 선택).":
+            "先に画面でスプライトを選択してください（空白をドラッグで範囲選択）。",
+        "모든 시트 추가": "全シートを追加",
+        "모든 시트 한 번에 내보내기": "全シートを一括出力",
         "모든 파일": "すべてのファイル",
         "목록 비우기": "リストを空にする",
         "무제": "無題",
-        "배경 허용 오차": "背景の許容誤差",
+        "배경색 허용 범위": "背景色の許容範囲",
         "배경색 = RGB{a0}": "背景色 = RGB{a0}",
         "배경으로 쓸 픽셀을 클릭하세요": "背景にするピクセルをクリックしてください",
         "배치 옵션": "配置オプション",
-        "배치 탭(2번) 화면이나 탭 머리글 위에 놓아야 담깁니다.":
-            "配置タブ(2番)の画面か、タブ見出しの上にドロップしてください。",
-        "배치 탭으로 담기": "配置タブへ追加",
+        "2번 탭 화면이나 탭 머리글 위에 놓아야 추가됩니다.":
+            "2番タブの画面か、タブ見出しの上にドロップしてください。",
+        "새 시트에 추가": "新シートに追加",
         "범위 선택: {a0}개": "範囲選択: {a0}個",
-        "분리 옵션 (선택한 시트에만 적용)": "分割オプション (選択中のシートのみ)",
+        "추출 옵션 (선택한 시트에만 적용)": "抽出オプション (選択中のシートのみ)",
         "분석 오류: {a0}": "解析エラー: {a0}",
         "분석 중…": "解析中…",
         "불러오기…": "読み込み…",
         "비우면 자동": "空欄で自動",
-        "상자 선택 (화면에서 드래그)": "枠の選択 (画面でドラッグ)",
+        "스프라이트 선택 (화면에서 드래그)": "スプライトの選択 (画面でドラッグ)",
         "새 시트 {a0}×{a1}   ·   {a2}개   ·   {a3:.0f}%{a4}":
             "新シート {a0}×{a1}   ·   {a2}個   ·   {a3:.0f}%{a4}",
         "새 시트 저장": "新シートを保存",
         "새 시트 저장: {a0} ({a1}×{a2}, {a3}개)": "新シートを保存: {a0} ({a1}×{a2}, {a3}個)",
-        "새 시트로 출력": "新シートとして出力",
+        "새 시트로 내보내기": "新シートとして出力",
         "새 시트에 넣을 이미지 선택": "新シートに入れる画像を選択",
         "색": "色",
-        "선택 {a0}개 출력": "選択 {a0}個を出力",
-        "선택 담기: {a0} → {a1}개 추가 (총 {a2}개)": "選択を追加: {a0} → {a1}個 (合計 {a2}個)",
-        "선택 시트 담기": "選択シートを追加",
+        "선택 {a0}개 내보내기": "選択 {a0}個を出力",
+        "선택 추가: {a0} → {a1}개 (총 {a2}개)": "選択を追加: {a0} → {a1}個 (合計 {a2}個)",
+        "이 시트 추가": "このシートを追加",
         "선택 시트 제거": "選択シートを削除",
         "선택 제거 (Del)": "選択を削除 (Del)",
         "선택 해제": "選択解除",
-        "선택한 것만 담기": "選択分のみ追加",
-        "선택한 상자 제외": "選択した枠を除外",
+        "선택만 추가": "選択分のみ追加",
+        "선택한 스프라이트 제외": "選択したスプライトを除外",
         "스냅(px)": "スナップ(px)",
         "스포이트": "スポイト",
         "스프라이트 시트 선택 (여러 개 가능)": "スプライトシートを選択 (複数可)",
-        "스프라이트를 담고 자동 배치를 눌러보세요": "スプライトを追加して自動配置を押してください",
+        "스프라이트를 추가하고 자동 배치를 눌러보세요": "スプライトを追加して自動配置を押してください",
         "시트 목록을 비웠습니다. (다음 실행 때도 비어 있습니다)":
             "シート一覧を空にしました。(次回起動時も空のままです)",
         "시트 이름별 하위 폴더로 나누기": "シート名ごとにサブフォルダーを分ける",
         "시트 추가…": "シート追加…",
-        "시트를 등록하고 분리하면 출력할 수 있습니다": "シートを登録して分割すると出力できます",
+        "시트를 등록하고 추출하면 내보낼 수 있습니다": "シートを登録して抽出すると出力できます",
         "시트를 등록하세요": "シートを登録してください",
-        "썸네일을 2번 탭으로 끌어다 놓으면 담깁니다": "サムネイルを2番タブにドラッグすると追加されます",
+        "썸네일을 2번 탭으로 끌어다 놓으면 추가됩니다": "サムネイルを2番タブにドラッグすると追加されます",
         "알 수 없음": "不明",
         "없음 - 픽셀로 자동 감지 중": "なし - ピクセルから自動検出中",
         "엔진에서 프레임 위치를 읽을 때 필요합니다": "エンジンでフレーム位置を読むのに必要です",
         "여기에 시트 이미지를 끌어다 놓으세요": "ここにシート画像をドロップしてください",
         "여백(px)": "余白(px)",
         "열기 실패 {a0}: {a1}": "読み込み失敗 {a0}: {a1}",
-        "왼쪽 시트 썸네일을 이 화면으로 끌어다 놓거나\n1번 탭에서 '담기'를 누르세요\n(낱장 이미지 파일도 여기로 놓을 수 있습니다)":
+        "왼쪽 시트 썸네일을 이 화면으로 끌어다 놓거나\n1번 탭에서 '추가'를 누르세요\n(낱장 이미지 파일도 여기로 놓을 수 있습니다)":
             "左のシートサムネイルをこの画面にドラッグするか、\n1番タブで「追加」を押してください\n"
             "(個別の画像ファイルもここにドロップできます)",
         "왼쪽 썸네일을 이 탭으로 끌어다 놓으세요": "左のサムネイルをこのタブにドラッグしてください",
         "이 설정을 모든 시트에 적용": "この設定を全シートに適用",
         "이름 접두어": "名前の接頭辞",
-        "이름표 표시": "名前ラベルを表示",
+        "이름 표시": "名前を表示",
         "이미 등록됨: {a0}": "登録済み: {a0}",
         "이미지": "画像",
         "이미지 추가…": "画像を追加…",
         "이미지 파일이 아닙니다.": "画像ファイルではありません。",
         "자동 배치": "自動配置",
         "자동 배치: {a0}개": "自動配置: {a0}個",
-        "잘라내기 방식": "切り出し方法",
+        "잘라내기 · 파일 이름": "切り出しとファイル名",
         "저장 폴더": "保存フォルダー",
         "저장 폴더 선택": "保存フォルダーを選択",
         "저장 폴더를 먼저 지정하세요.": "先に保存フォルダーを指定してください。",
@@ -409,7 +409,7 @@ TRANSLATIONS = {
         "정사각형으로 크기 통일": "正方形でサイズを統一",
         "제거: {a0}": "削除: {a0}",
         "제거할 항목을 먼저 클릭해서 선택하세요": "削除する項目をクリックして選択してください",
-        "제외할 상자를 먼저 선택하세요.": "除外する枠を先に選択してください。",
+        "제외할 스프라이트를 먼저 선택하세요.": "除外するスプライトを先に選択してください。",
         "좌표 JSON 파일": "座標JSONファイル",
         "좌표 파일": "座標ファイル",
         "좌표 파일 (아틀라스)": "座標ファイル (アトラス)",
@@ -424,9 +424,9 @@ TRANSLATIONS = {
         "직접 추가": "直接追加",
         "총 {a0}개 저장 → {a1}": "合計 {a0}個を保存 → {a1}",
         "최대 너비": "最大幅",
-        "최소 크기(px)": "最小サイズ(px)",
+        "최소 가로·세로(px)": "最小の幅・高さ(px)",
         "최소 픽셀 수": "最小ピクセル数",
-        "출력": "出力",
+        "내보내기": "出力",
         "출처: {a0}{a1}   ·   빈 곳 드래그=범위 선택, 휠=확대, 가운데 드래그=이동":
             "出典: {a0}{a1}   ·   空白ドラッグ=範囲選択、ホイール=拡大、中ドラッグ=移動",
         "트리밍 {a0}": "トリミング {a0}",
@@ -437,7 +437,7 @@ TRANSLATIONS = {
         "폴더를 만들 수 없습니다.\n{a0}": "フォルダーを作成できません。\n{a0}",
         "프레임 정보를 찾지 못했습니다.": "フレーム情報が見つかりません。",
         "픽셀 자동 감지": "ピクセル自動検出",
-        "함께 저장": "一緒に保存",
+        "좌표 파일 함께 저장": "座標ファイルも保存",
         "해제": "解除",
         "회전 {a0}": "回転 {a0}",
         "회전 방향 반대로 (그림이 뒤집혀 나올 때)": "回転方向を反転 (絵が横向きになる場合)",
@@ -1206,7 +1206,7 @@ class SpriteStudio:
 
         self.lib_title = ttk.Label(lib, text=t("등록된 시트 (0)"), font=(UI_FONT, 10, "bold"))
         self.lib_title.pack(anchor="w")
-        ttk.Label(lib, text=t("썸네일을 2번 탭으로 끌어다 놓으면 담깁니다"),
+        ttk.Label(lib, text=t("썸네일을 2번 탭으로 끌어다 놓으면 추가됩니다"),
                   foreground="#666", font=(UI_FONT, 8), wraplength=195,
                   justify="left").pack(anchor="w", pady=(0, 4))
 
@@ -1245,8 +1245,8 @@ class SpriteStudio:
 
         tab1 = ttk.Frame(self.nb, padding=4)
         tab2 = ttk.Frame(self.nb, padding=4)
-        self.nb.add(tab1, text=t("  1. 시트 분리  "))
-        self.nb.add(tab2, text=t("  2. 새 시트 배치  "))
+        self.nb.add(tab1, text=t("  1. 스프라이트 추출  "))
+        self.nb.add(tab2, text=t("  2. 새 시트 만들기  "))
 
         self.title_lbl = ttk.Label(tab1, text=t("시트를 등록하세요"),
                                    font=(UI_FONT, 11, "bold"), anchor="w")
@@ -1260,7 +1260,7 @@ class SpriteStudio:
         self.canvas.bind("<ButtonRelease-1>", self.on_canvas_release)
         self.canvas.bind("<Double-Button-1>", self.on_canvas_dblclick)
         self._bind_view(self.canvas, self.view1, self.redraw)
-        self.status = ttk.Label(tab1, text=t("대기 중"), anchor="w")
+        self.status = ttk.Label(tab1, text=t("준비됨"), anchor="w")
         self.status.pack(fill="x")
 
         self._build_layout_tab(tab2)
@@ -1383,12 +1383,12 @@ class SpriteStudio:
                         variable=self.v_fliprot,
                         command=self.on_atlas_opt).pack(anchor="w")
 
-        box = self._section(parent, "split", t("분리 옵션"),
-                            action=(t("분리"), self.run_split))
+        box = self._section(parent, "split", t("추출 옵션"),
+                            action=(t("추출"), self.run_split))
         ttk.Label(box, text=t("선택한 시트에만 적용됩니다"), foreground="#888",
                   font=(UI_FONT, 8)).pack(anchor="w", pady=(0, 3))
-        self.s_merge = self._slider(box, t("덩어리 묶기(px)"), 0, 0, 20)
-        self.s_minsize = self._slider(box, t("최소 크기(px)"), 3, 1, 40)
+        self.s_merge = self._slider(box, t("조각 합치기(px)"), 0, 0, 20)
+        self.s_minsize = self._slider(box, t("최소 가로·세로(px)"), 3, 1, 40)
         self.s_minarea = self._slider(box, t("최소 픽셀 수"), 8, 1, 200)
 
         bgrow = ttk.Frame(box)
@@ -1401,11 +1401,11 @@ class SpriteStudio:
         ttk.Button(bgrow, text=t("색"), width=4, command=self.choose_bg).pack(side="left")
         ttk.Button(bgrow, text=t("스포이트"), width=8,
                    command=self.start_pick).pack(side="left", padx=(4, 0))
-        self.s_tol = self._slider(box, t("배경 허용 오차"), 20, 0, 120)
+        self.s_tol = self._slider(box, t("배경색 허용 범위"), 20, 0, 120)
         ttk.Button(box, text=t("이 설정을 모든 시트에 적용"),
                    command=self.apply_to_all).pack(fill="x", pady=(6, 0))
 
-        box2 = self._section(parent, "crop", t("잘라내기 방식"))
+        box2 = self._section(parent, "crop", t("잘라내기 · 파일 이름"))
         self.s_pad = self._slider(box2, t("여백(px)"), 0, 0, 20, live=False)
         ttk.Checkbutton(box2, text=t("정사각형으로 크기 통일"), variable=self.v_square,
                         command=self.store_opts).pack(anchor="w", pady=2)
@@ -1419,24 +1419,24 @@ class SpriteStudio:
                         variable=self.v_subdir,
                         command=self.update_export_ui).pack(anchor="w")
 
-        boxsel = self._section(parent, "boxsel", t("상자 선택 (화면에서 드래그)"))
+        boxsel = self._section(parent, "boxsel", t("스프라이트 선택 (화면에서 드래그)"))
         srow = ttk.Frame(boxsel)
         srow.pack(fill="x")
         ttk.Button(srow, text=t("전체 선택"), command=self.select_all_boxes,
                    width=11).pack(side="left")
         ttk.Button(srow, text=t("선택 해제"), command=self.clear_box_selection,
                    width=11).pack(side="right")
-        ttk.Button(boxsel, text=t("선택한 상자 제외"),
+        ttk.Button(boxsel, text=t("선택한 스프라이트 제외"),
                    command=self.drop_selected_boxes).pack(fill="x", pady=(2, 0))
-        ttk.Button(boxsel, text=t("선택한 것만 담기"),
+        ttk.Button(boxsel, text=t("선택만 추가"),
                    command=self.collect_selected).pack(fill="x", pady=(2, 0))
 
-        box3 = self._section(parent, "collect", t("배치 탭으로 담기"))
-        ttk.Button(box3, text=t("선택 시트 담기"),
+        box3 = self._section(parent, "collect", t("새 시트에 추가"))
+        ttk.Button(box3, text=t("이 시트 추가"),
                    command=lambda: self.collect(False)).pack(fill="x")
-        ttk.Button(box3, text=t("모든 시트 담기"),
+        ttk.Button(box3, text=t("모든 시트 추가"),
                    command=lambda: self.collect(True)).pack(fill="x", pady=2)
-        self.pool_lbl = ttk.Label(box3, text=t("대기 중: 0개"), foreground="#0a6")
+        self.pool_lbl = ttk.Label(box3, text=t("스프라이트 0개"), foreground="#0a6")
         self.pool_lbl.pack(anchor="w")
 
     def _build_layout_options(self, parent):
@@ -1464,14 +1464,14 @@ class SpriteStudio:
 
         ttk.Checkbutton(box, text=t("2의 거듭제곱 크기로 맞춤"), variable=self.v_pot,
                         command=self.recompute_size).pack(anchor="w", pady=(4, 0))
-        ttk.Checkbutton(box, text=t("이름표 표시"), variable=self.v_shownames,
+        ttk.Checkbutton(box, text=t("이름 표시"), variable=self.v_shownames,
                         command=self.render_layout).pack(anchor="w")
 
         ttk.Button(box, text=t("자동 배치"), command=self.auto_pack).pack(fill="x", pady=(6, 2))
         ttk.Button(box, text=t("격자 정렬"), command=self.grid_pack).pack(fill="x")
 
-        box2 = self._section(parent, "pool", t("대기 목록"))
-        self.pool_lbl2 = ttk.Label(box2, text=t("대기 중: 0개"),
+        box2 = self._section(parent, "pool", t("새 시트 구성"))
+        self.pool_lbl2 = ttk.Label(box2, text=t("스프라이트 0개"),
                                    font=(UI_FONT, 9, "bold"), foreground="#0a6")
         self.pool_lbl2.pack(anchor="w", pady=(0, 4))
         ttk.Button(box2, text=t("이미지 추가…"), command=self.add_pool_files).pack(fill="x")
@@ -1479,7 +1479,7 @@ class SpriteStudio:
                    command=self.remove_selected).pack(fill="x", pady=2)
         ttk.Button(box2, text=t("목록 비우기"), command=self.clear_pool).pack(fill="x")
 
-        box3 = self._section(parent, "savejson", t("함께 저장"))
+        box3 = self._section(parent, "savejson", t("좌표 파일 함께 저장"))
         ttk.Checkbutton(box3, text=t("좌표 JSON 파일"), variable=self.v_atlas,
                         command=self.update_export_ui).pack(anchor="w")
         ttk.Label(box3, text=t("엔진에서 프레임 위치를 읽을 때 필요합니다"),
@@ -1503,7 +1503,7 @@ class SpriteStudio:
                                     fg="#555", font=(UI_FONT, 9), wraplength=290)
         self.export_hint.pack(fill="x", pady=(8, 3))
 
-        self.big_btn = tk.Button(area, text=t("출력"), command=self.do_export,
+        self.big_btn = tk.Button(area, text=t("내보내기"), command=self.do_export,
                                  font=(UI_FONT, 14, "bold"),
                                  bg="#0b7285", fg="white",
                                  activebackground="#095c6b", activeforeground="white",
@@ -1513,7 +1513,7 @@ class SpriteStudio:
         self.big_btn.bind("<Enter>", lambda e: self._btn_hover(True))
         self.big_btn.bind("<Leave>", lambda e: self._btn_hover(False))
 
-        self.sub_btn = ttk.Button(area, text=t("모든 시트 한 번에 출력"), command=self.export_all)
+        self.sub_btn = ttk.Button(area, text=t("모든 시트 한 번에 내보내기"), command=self.export_all)
         self.sub_btn.pack(fill="x", pady=(4, 0))
 
     def _btn_hover(self, on):
@@ -1540,7 +1540,7 @@ class SpriteStudio:
             n = len(self.pool)
             W, H = self.sheet_size
             ready = n > 0
-            self.big_btn.config(text=t("새 시트로 출력") if ready else t("담긴 것이 없습니다"))
+            self.big_btn.config(text=t("새 시트로 내보내기") if ready else t("추가된 것이 없습니다"))
             extra = " + JSON" if self.v_atlas.get() else ""
             self.export_hint.config(
                 text=(t("PNG {a0}×{a1}{a2} · 스프라이트 {a3}개\n{a4}", a0=W, a1=H, a2=extra, a3=n, a4=short)) if ready
@@ -1551,13 +1551,13 @@ class SpriteStudio:
             n = len(self.sel1) if (s and self.sel1) else (len(s.boxes) if s else 0)
             ready = bool(s and n)
             self.big_btn.config(
-                text=t("선택 {a0}개 출력", a0=n) if (ready and self.sel1)
-                else (t("개별 이미지로 출력") if ready else t("시트를 등록하세요")))
+                text=t("선택 {a0}개 내보내기", a0=n) if (ready and self.sel1)
+                else (t("개별 이미지로 내보내기") if ready else t("시트를 등록하세요")))
             if ready:
                 folder = f"{short}\\{safe_name(s.prefix)}" if self.v_subdir.get() else short
                 self.export_hint.config(text=t("PNG {a0}장 · {a1}_000 …\n{a2}", a0=n, a1=s.prefix, a2=folder))
             else:
-                self.export_hint.config(text=t("시트를 등록하고 분리하면 출력할 수 있습니다"))
+                self.export_hint.config(text=t("시트를 등록하고 추출하면 내보낼 수 있습니다"))
             self.sub_btn.pack(fill="x", pady=(4, 0))
             self.sub_btn.state(["!disabled"] if self.sheets else ["disabled"])
 
@@ -1567,14 +1567,14 @@ class SpriteStudio:
             self.big_btn.config(state="disabled", bg="#9aa0a6")
 
         if hasattr(self, "pool_lbl"):
-            self.pool_lbl.config(text=t("대기 중: {a0}개", a0=len(self.pool)))
+            self.pool_lbl.config(text=t("스프라이트 {a0}개", a0=len(self.pool)))
         if hasattr(self, "pool_lbl2"):
-            self.pool_lbl2.config(text=t("대기 중: {a0}개", a0=len(self.pool)))
+            self.pool_lbl2.config(text=t("스프라이트 {a0}개", a0=len(self.pool)))
 
     def _build_layout_tab(self, tab):
         head = ttk.Frame(tab)
         head.pack(fill="x")
-        self.layout_title = ttk.Label(head, text=t("대기 목록이 비어 있습니다"),
+        self.layout_title = ttk.Label(head, text=t("추가된 스프라이트가 없습니다"),
                                       font=(UI_FONT, 11, "bold"), anchor="w")
         self.layout_title.pack(side="left")
 
@@ -1589,7 +1589,7 @@ class SpriteStudio:
         self.lcanvas.bind("<Double-Button-1>", self.on_layout_dblclick)
         self._bind_view(self.lcanvas, self.view2, self.render_layout)
 
-        self.lstatus = ttk.Label(tab, text=t("스프라이트를 담고 자동 배치를 눌러보세요"),
+        self.lstatus = ttk.Label(tab, text=t("스프라이트를 추가하고 자동 배치를 눌러보세요"),
                                  anchor="w")
         self.lstatus.pack(fill="x")
 
@@ -1949,7 +1949,7 @@ class SpriteStudio:
         else:
             self.active = -1
             self.title_lbl.config(text=t("시트를 등록하세요"))
-            self.status.config(text=t("대기 중"))
+            self.status.config(text=t("준비됨"))
             self.redraw()
 
     def remove_active(self):
@@ -1962,7 +1962,7 @@ class SpriteStudio:
         self.sheets, self.active = [], -1
         self.refresh_library()
         self.title_lbl.config(text=t("시트를 등록하세요"))
-        self.status.config(text=t("대기 중"))
+        self.status.config(text=t("준비됨"))
         self.redraw()
         self.save_session(immediate=True)
         self.log(t("시트 목록을 비웠습니다. (다음 실행 때도 비어 있습니다)"))
@@ -1984,7 +1984,7 @@ class SpriteStudio:
                 pass
             tk.Label(self._ghost, bg=BG_SEL, fg="white", padx=8, pady=4,
                      font=(UI_FONT, 9, "bold"),
-                     text=t("{a0}  ({a1}개) → 배치 탭에 놓기", a0=s.name, a1=len(s.boxes))).pack()
+                     text=t("{a0}  ({a1}개) → 2번 탭에 놓기", a0=s.name, a1=len(s.boxes))).pack()
 
         self._ghost.geometry(f"+{event.x_root + 16}+{event.y_root + 16}")
 
@@ -2005,7 +2005,7 @@ class SpriteStudio:
         if idx is None:
             return                      # 단순 클릭이었음
         if not self.drop_accepted(event.x_root, event.y_root):
-            self.log(t("배치 탭(2번) 화면이나 탭 머리글 위에 놓아야 담깁니다."))
+            self.log(t("2번 탭 화면이나 탭 머리글 위에 놓아야 추가됩니다."))
             return
         self.nb.select(1)
         self.pool_add_sheets([self.sheets[idx]], label=t("드래그로"))
@@ -2392,7 +2392,7 @@ class SpriteStudio:
         """선택한 상자를 감지 목록에서 빼서 출력 대상에서 제외."""
         s = self.cur()
         if not s or not self.sel1:
-            self.log(t("제외할 상자를 먼저 선택하세요."))
+            self.log(t("제외할 스프라이트를 먼저 선택하세요."))
             return
         keep = [b for i, b in enumerate(s.boxes) if i not in self.sel1]
         self.log(t("{a0}개를 목록에서 제외했습니다. (슬라이더를 움직이면 다시 감지됩니다)", a0=len(s.boxes) - len(keep)))
@@ -2458,12 +2458,12 @@ class SpriteStudio:
         """탭1에서 선택한 상자만 대기 목록에 담는다."""
         s = self.cur()
         if not s or not self.sel1:
-            self.log(t("먼저 화면에서 상자를 선택하세요 (빈 곳을 드래그하면 범위 선택)."))
+            self.log(t("먼저 화면에서 스프라이트를 선택하세요 (빈 곳을 드래그하면 범위 선택)."))
             return
         items = self.sheet_sprites(s, self.sel1)
         for im, name in items:
             self.pool.append(PoolItem(im, name, s.name))
-        self.log(t("선택 담기: {a0} → {a1}개 추가 (총 {a2}개)", a0=s.name, a1=len(items), a2=len(self.pool)))
+        self.log(t("선택 추가: {a0} → {a1}개 (총 {a2}개)", a0=s.name, a1=len(items), a2=len(self.pool)))
         self.auto_pack()
         self.nb.select(1)
 
@@ -2471,7 +2471,7 @@ class SpriteStudio:
         targets = self.sheets if all_sheets else ([self.cur()] if self.cur() else [])
         self.pool_add_sheets(targets)
 
-    def pool_add_sheets(self, targets, label=t("담기")):
+    def pool_add_sheets(self, targets, label=t("추가")):
         """시트들에서 스프라이트를 잘라 대기 목록에 추가하고 자동 배치."""
         added, names = 0, []
         for s in targets:
@@ -2488,7 +2488,7 @@ class SpriteStudio:
                 added += 1
             names.append(s.name)
         if not added:
-            self.log(t("담을 스프라이트가 없습니다. 먼저 시트를 분리하세요."))
+            self.log(t("추가할 스프라이트가 없습니다. 먼저 시트에서 추출하세요."))
             return
         self.log(t("{a0}: {a1} → {a2}개 추가 (총 {a3}개)", a0=label, a1=', '.join(names), a2=added, a3=len(self.pool)))
         self.auto_pack()
@@ -2513,13 +2513,13 @@ class SpriteStudio:
                 os.path.basename(p))[0]), t("직접 추가")))
             added += 1
         if added:
-            self.log(t("{a0}개 이미지를 대기 목록에 추가 (총 {a1}개)", a0=added, a1=len(self.pool)))
+            self.log(t("{a0}개 이미지를 새 시트에 추가 (총 {a1}개)", a0=added, a1=len(self.pool)))
             self.auto_pack()
             self.nb.select(1)
 
     def clear_pool(self):
         self.pool, self.sel = [], set()
-        self.log(t("대기 목록을 비웠습니다."))
+        self.log(t("목록을 비웠습니다."))
         self.recompute_size()
 
     def remove_selected(self):
@@ -2632,12 +2632,12 @@ class SpriteStudio:
         ch = max(self.lcanvas.winfo_height(), 1)
 
         if not self.pool:
-            self.layout_title.config(text=t("대기 목록이 비어 있습니다"))
+            self.layout_title.config(text=t("추가된 스프라이트가 없습니다"))
             self.lcanvas.create_text(cw // 2, ch // 2, fill="#bbb",
                                      font=(UI_FONT, 12),
-                                     text=t("왼쪽 시트 썸네일을 이 화면으로 끌어다 놓거나\n1번 탭에서 '담기'를 누르세요\n(낱장 이미지 파일도 여기로 놓을 수 있습니다)"),
+                                     text=t("왼쪽 시트 썸네일을 이 화면으로 끌어다 놓거나\n1번 탭에서 '추가'를 누르세요\n(낱장 이미지 파일도 여기로 놓을 수 있습니다)"),
                                      justify="center")
-            self.lstatus.config(text=t("대기 목록이 비어 있습니다"))
+            self.lstatus.config(text=t("추가된 스프라이트가 없습니다"))
             self.update_export_ui()
             return
 
@@ -2847,7 +2847,7 @@ class SpriteStudio:
     def export_active(self):
         s = self.cur()
         if not s or not s.boxes:
-            messagebox.showinfo(APP_NAME, t("먼저 시트를 등록하고 분리하세요."))
+            messagebox.showinfo(APP_NAME, t("먼저 시트를 등록하고 추출하세요."))
             return
         self.store_opts()
         d = self.outdir()
@@ -2893,7 +2893,7 @@ class SpriteStudio:
     def export_sheet(self):
         """화면에 보이는 배치 그대로 시트와 좌표 JSON 을 저장."""
         if not self.pool:
-            messagebox.showinfo(APP_NAME, t("대기 목록이 비어 있습니다. 1번 탭에서 '담기'를 먼저 눌러주세요."))
+            messagebox.showinfo(APP_NAME, t("추가된 스프라이트가 없습니다. 1번 탭에서 '추가'를 먼저 눌러주세요."))
             return
         bad = self._overlaps
         if bad and not messagebox.askyesno(
