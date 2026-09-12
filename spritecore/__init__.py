@@ -29,6 +29,7 @@ from .packing import (
     grid_positions,
     next_pot,
     pack_shelf,
+    sort_by_position,
 )
 from .atlas import (
     extract_atlas_frame,
@@ -48,7 +49,7 @@ __all__ = [
     "FONTS", "LANG_CODES", "LANG_NAMES", "TRANSLATIONS", "set_lang", "t",
     "bboxes_from_labels", "build_mask", "crop_sprites", "detect_boxes",
     "dilate", "label_components", "sort_reading_order",
-    "auto_width", "find_overlaps", "grid_positions", "next_pot", "pack_shelf",
+    "auto_width", "find_overlaps", "grid_positions", "next_pot", "pack_shelf", "sort_by_position",
     "extract_atlas_frame", "find_sibling_atlas", "parse_atlas_data",
     "parse_atlas_file", "parse_cocos_plist", "parse_libgdx_atlas",
     "parse_own_json", "parse_sparrow_xml", "parse_texturepacker_json",

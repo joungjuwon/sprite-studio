@@ -17,13 +17,20 @@ from PIL import Image
 
 from spritecore import (
     ATLAS_EXTS,
+    BORDER,
+    auto_width,
     crop_sprites,
     detect_boxes,
     extract_atlas_frame,
+    find_overlaps,
+    grid_positions,
     make_checker,
+    next_pot,
+    pack_shelf,
     parse_atlas_data,
     safe_name,
     set_lang,
+    sort_by_position,
     t,
 )
 
@@ -36,6 +43,9 @@ DEFAULT_OPTS = dict(merge=0, min_size=3, min_area=8, use_bg=False,
 
 _sheets = []        # SheetItem 과 같은 역할의 dict 목록
 _active = -1
+
+_pool = []          # 2번 탭 대기 목록. PoolItem 과 같은 역할
+_layout = {"w": 0, "h": 0, "overlaps": []}
 
 
 # ------------------------------------------------------------------ 도우미
@@ -310,6 +320,20 @@ KEYS = [
     "{a0}개 중 {a1}개 선택됨  ·  {a2}  ·  빈 곳 드래그=범위 선택, 휠=확대,"
     " 가운데/오른쪽 드래그=이동, 더블클릭=화면 맞춤",
     "{a0}개 · {a1}  ·  {a2}  ·  드래그로 여러 개 선택 가능 (Shift=추가)",
+
+    # 2번 탭 — 새 시트 만들기
+    "배치 옵션", "최대 너비", "비우면 자동", "간격(px)", "스냅(px)", "드래그 이동 단위",
+    "2의 거듭제곱 크기로 맞춤", "이름 표시", "자동 배치", "격자 정렬",
+    "새 시트 구성", "이미지 추가…", "선택 제거 (Del)", "목록 비우기",
+    "좌표 JSON 파일", "엔진에서 프레임 위치를 읽을 때 필요합니다",
+    "추가된 스프라이트가 없습니다", "스프라이트를 추가하고 자동 배치를 눌러보세요",
+    "이 시트 추가", "모든 시트 추가", "선택만 추가", "새 시트에 추가",
+    "새 시트로 내보내기", "추가할 스프라이트가 없습니다. 먼저 시트에서 추출하세요.",
+    "자동 배치: {a0}개", "격자 정렬: {a0}개 (화면에 놓인 순서 기준)",
+    "겹친 항목이 {a0}개 있습니다. 그대로 저장할까요?",
+    "새 시트 저장: {a0} ({a1}×{a2}, {a3}개)",
+    "왼쪽 시트 썸네일을 이 화면으로 끌어다 놓거나\n1번 탭에서 '추가'를 누르세요"
+    "\n(낱장 이미지 파일도 여기로 놓을 수 있습니다)",
 ]
 
 
@@ -317,3 +341,170 @@ def strings(code):
     """UI 문자열 한 벌. 데스크톱과 같은 번역표를 쓴다."""
     set_lang(code)
     return json.dumps({k: t(k) for k in KEYS})
+
+
+# ==================================================================== 2번 탭
+# 새 시트 만들기. 데스크톱의 pool / PoolItem 과 같은 구조다. 화면에 그리는
+# 일은 JS 가 맡으므로, 스프라이트 한 장 한 장을 PNG 로 한 번만 넘기고
+# 그 뒤로는 좌표만 주고받는다. 드래그가 파이썬을 거치지 않아 매끄럽다.
+
+def _pool_rects():
+    return [(p["x"], p["y"], p["img"].width, p["img"].height) for p in _pool]
+
+
+def _recompute(pot=False):
+    """놓인 내용에 맞춰 시트 크기와 겹침을 다시 계산한다."""
+    if not _pool:
+        _layout.update(w=0, h=0, overlaps=[])
+        return
+    W = max(p["x"] + p["img"].width for p in _pool) + BORDER
+    H = max(p["y"] + p["img"].height for p in _pool) + BORDER
+    if pot:
+        W, H = next_pot(W), next_pot(H)
+    _layout.update(w=W, h=H, overlaps=sorted(find_overlaps(_pool_rects())))
+
+
+def _pool_state(with_images=False):
+    items = []
+    for i, p in enumerate(_pool):
+        item = {"i": i, "name": p["name"], "source": p["source"],
+                "x": p["x"], "y": p["y"],
+                "w": p["img"].width, "h": p["img"].height}
+        if with_images:
+            item["png"] = _png(p["img"])
+        items.append(item)
+    return {"items": items, "sheet": dict(_layout)}
+
+
+def pool_state(with_images=False):
+    return json.dumps(_pool_state(bool(with_images)))
+
+
+def pool_add(index=None, indices=None, all_sheets=False, spacing=2, width=0, pot=False):
+    """시트에서 잘라낸 스프라이트를 대기 목록에 담고 자동 배치한다."""
+    if all_sheets:
+        targets = [(s, range(len(s["boxes"]))) for s in _sheets]
+    else:
+        s = _get(_active if index is None else int(index))
+        picked = list(indices) if indices else range(len(s["boxes"]))
+        targets = [(s, picked)]
+
+    added = 0
+    for s, picked in targets:
+        for name, im in _sprites(s, picked):
+            _pool.append({"img": im, "name": name, "source": s["name"],
+                          "x": BORDER, "y": BORDER})
+            added += 1
+    if not added:
+        raise ValueError(t("추가할 스프라이트가 없습니다. 먼저 시트에서 추출하세요."))
+    _auto(spacing, width, pot)
+    return json.dumps({"added": added, **_pool_state(True)})
+
+
+def pool_add_image(data, filename, spacing=2, width=0, pot=False):
+    """낱장 이미지 파일을 바로 대기 목록에 넣는다."""
+    img = Image.open(io.BytesIO(bytes(data)))
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
+    _pool.append({"img": img, "name": safe_name(filename.rsplit(".", 1)[0]),
+                  "source": "", "x": BORDER, "y": BORDER})
+    _auto(spacing, width, pot)
+    return json.dumps({"added": 1, **_pool_state(True)})
+
+
+def _max_width(width, spacing):
+    if width and int(width) > 0:
+        return int(width)
+    return auto_width([(p["img"].width, p["img"].height) for p in _pool], int(spacing))
+
+
+def _auto(spacing, width, pot):
+    if not _pool:
+        _recompute(pot)
+        return
+    pos = pack_shelf([(p["img"].width, p["img"].height) for p in _pool],
+                     _max_width(width, spacing), int(spacing))
+    for p, (x, y) in zip(_pool, pos):
+        p["x"], p["y"] = x, y
+    _recompute(pot)
+
+
+def pool_auto(spacing=2, width=0, pot=False):
+    """자동 배치 — 선반 방식으로 차곡차곡 쌓는다."""
+    _auto(spacing, width, pot)
+    return json.dumps(_pool_state())
+
+
+def pool_grid(spacing=2, width=0, pot=False):
+    """격자 정렬 — 지금 놓인 순서를 그대로 두고 칸을 맞춘다."""
+    if not _pool:
+        return json.dumps(_pool_state())
+    _sort_pool()
+    pos = grid_positions([(p["img"].width, p["img"].height) for p in _pool],
+                         _max_width(width, spacing), int(spacing))
+    for p, (x, y) in zip(_pool, pos):
+        p["x"], p["y"] = x, y
+    _recompute(pot)
+    return json.dumps(_pool_state(True))
+
+
+def _sort_pool():
+    global _pool
+    order = sort_by_position(_pool_rects())
+    _pool = [_pool[i] for i in order]
+
+
+def pool_move(moves, pot=False):
+    """드래그로 옮긴 좌표를 반영한다. moves 는 [[번호, x, y], …]."""
+    for i, x, y in (json.loads(moves) if isinstance(moves, str) else moves):
+        if 0 <= int(i) < len(_pool):
+            _pool[int(i)]["x"] = max(0, int(x))
+            _pool[int(i)]["y"] = max(0, int(y))
+    _recompute(pot)
+    return json.dumps(_pool_state())
+
+
+def pool_remove(indices, pot=False):
+    global _pool
+    drop = {int(i) for i in indices}
+    _pool = [p for i, p in enumerate(_pool) if i not in drop]
+    _recompute(pot)
+    return json.dumps(_pool_state(True))
+
+
+def pool_clear():
+    _pool.clear()
+    _recompute()
+    return json.dumps(_pool_state(True))
+
+
+def export_layout(with_atlas=True, pot=False):
+    """배치 그대로 새 시트 PNG + 좌표 JSON 을 zip 으로."""
+    if not _pool:
+        raise ValueError(t("추가된 스프라이트가 없습니다"))
+    _sort_pool()                      # JSON 프레임 순서를 화면과 맞춘다
+    _recompute(pot)
+    W, H = _layout["w"], _layout["h"]
+
+    sheet = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    for p in _pool:
+        sheet.alpha_composite(p["img"], (p["x"], p["y"]))
+
+    png = io.BytesIO()
+    sheet.save(png, "PNG")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("packed_sheet.png", png.getvalue())
+        if with_atlas:
+            atlas = {"image": "packed_sheet.png",
+                     "size": {"w": W, "h": H},
+                     "frames": [{"name": p["name"], "x": p["x"], "y": p["y"],
+                                 "w": p["img"].width, "h": p["img"].height,
+                                 "source": p["source"]} for p in _pool]}
+            z.writestr("packed_sheet.json",
+                       json.dumps(atlas, ensure_ascii=False, indent=2))
+
+    return json.dumps({"name": "packed_sheet.zip",
+                       "data": base64.b64encode(buf.getvalue()).decode("ascii"),
+                       "count": len(_pool), "w": W, "h": H})

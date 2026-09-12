@@ -29,7 +29,6 @@ import threading
 if not getattr(sys, "frozen", False):
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import numpy as np
 from PIL import Image, ImageTk
 
 import tkinter as tk
@@ -51,6 +50,7 @@ from spritecore import (
     next_pot,
     pack_shelf,
     parse_atlas_file,
+    sort_by_position,
     make_checker,
     safe_name,
     set_lang,
@@ -1685,17 +1685,8 @@ class SpriteStudio:
 
     def sort_pool_by_position(self):
         """화면에 놓인 위치대로(위→아래, 왼쪽→오른쪽) 목록 순서를 맞춘다."""
-        if not self.pool:
-            return
-        row_tol = max(1, int(np.median([p.h for p in self.pool]) * 0.5))
-        remaining = sorted(self.pool, key=lambda p: (p.y, p.x))
-        ordered = []
-        while remaining:
-            top = remaining[0].y
-            row = [p for p in remaining if p.y < top + row_tol]
-            remaining = [p for p in remaining if p.y >= top + row_tol]
-            ordered.extend(sorted(row, key=lambda p: p.x))
-        self.pool = ordered
+        order = sort_by_position([p.rect() for p in self.pool])
+        self.pool = [self.pool[i] for i in order]
 
     def max_width_value(self):
         raw = self.v_width.get().strip()
