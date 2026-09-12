@@ -16,6 +16,9 @@ const PYODIDE = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
 // 데스크톱과 같은 슬라이더 구성 (id, 기본값)
 const SLIDERS = ['merge', 'min_size', 'min_area', 'tol', 'pad'];
 
+// 왼쪽 썸네일을 끌 때 시트 번호를 싣는 이름. 이게 있으면 파일 드롭이 아니다.
+const SHEET_DRAG = 'application/x-sprite-studio-sheet';
+
 const $ = (id) => document.getElementById(id);
 
 let py = null;
@@ -201,7 +204,14 @@ function render() {
           '<div class="sheet-meta"></div>' +
           '<div class="sheet-count"></div>' +
         '</div><span class="sheet-x">×</span>';
-      row.querySelector('img').src = 'data:image/png;base64,' + r.thumb;
+      const thumb = row.querySelector('img');
+      thumb.src = 'data:image/png;base64,' + r.thumb;
+      thumb.draggable = false;      // 브라우저가 썸네일 그림을 끌어가지 못하게
+      row.draggable = true;
+      row.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData(SHEET_DRAG, String(r.index));
+        e.dataTransfer.effectAllowed = 'copy';
+      });
       row.querySelector('.sheet-name').textContent = r.name.slice(0, 16);
       row.querySelector('.sheet-meta').textContent = r.w + '×' + r.h;
       row.querySelector('.sheet-count').textContent = s('{a0}개 감지', r.count);
@@ -554,6 +564,7 @@ function wire() {
     stage.classList.remove('over');
   }));
   document.addEventListener('drop', (e) => {
+    if (e.dataTransfer.getData(SHEET_DRAG)) return;   // 썸네일 드래그는 2번 탭 몫
     const files = Array.from(e.dataTransfer.files);
     const atlas = files.filter((f) => /\.(json|xml|plist|atlas)$/i.test(f.name));
     const imgs = files.filter((f) => atlas.indexOf(f) < 0);
