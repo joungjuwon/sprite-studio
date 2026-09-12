@@ -92,3 +92,22 @@ def find_overlaps(rects):
                     bad.add(i)
                     bad.add(j)
     return bad
+
+
+def sort_by_position(rects):
+    """놓인 자리대로(위→아래, 왼쪽→오른쪽) 순서를 매긴다.
+
+    rects 는 (x, y, w, h) 목록. 반환은 원래 목록에서의 번호 순서라,
+    좌표뿐 아니라 그에 딸린 것들도 같이 재배열할 수 있다.
+    """
+    if not rects:
+        return []
+    row_tol = max(1, int(np.median([r[3] for r in rects]) * 0.5))
+    remaining = sorted(range(len(rects)), key=lambda i: (rects[i][1], rects[i][0]))
+    order = []
+    while remaining:
+        top = rects[remaining[0]][1]
+        row = [i for i in remaining if rects[i][1] < top + row_tol]
+        remaining = [i for i in remaining if rects[i][1] >= top + row_tol]
+        order.extend(sorted(row, key=lambda i: rects[i][0]))
+    return order

@@ -276,6 +276,7 @@ function render() {
 }
 
 function renderExport() {
+  if (typeof tab !== 'undefined' && tab === 2) { renderExport2(); return; }
   const sh = S.sheet;
   const n = sh ? (selected.size || sh.boxes.length) : 0;
   const ready = !!(sh && n);
@@ -292,7 +293,21 @@ function renderExport() {
   } else {
     $('export-hint').textContent = s('시트를 등록하고 추출하면 내보낼 수 있습니다');
   }
+  $('sub').hidden = false;
   $('sub').disabled = !(S.sheets && S.sheets.length);
+}
+
+// 2번 탭일 때의 내보내기 칸 — 데스크톱도 큰 버튼 하나로 탭에 맞춰 바뀐다
+function renderExport2() {
+  const n = P.items.length;
+  $('big').disabled = !n;
+  $('big').textContent = n ? s('새 시트로 내보내기') : s('추가된 스프라이트가 없습니다');
+  $('export-hint').textContent = n
+    ? 'PNG ' + P.sheet.w + '×' + P.sheet.h
+      + ($('with-atlas').checked ? ' + JSON' : '')
+      + ' · ' + s('스프라이트 {a0}개', n) + '\npacked_sheet.zip'
+    : s('스프라이트를 추가하고 자동 배치를 눌러보세요');
+  $('sub').hidden = true;
 }
 
 /* ------------------------------------------------------------------ 시트 */
@@ -634,7 +649,10 @@ function wire() {
     render();
   });
 
-  $('big').addEventListener('click', exportActive);
+  $('big').addEventListener('click', () => {
+    if (tab === 2) exportLayout();
+    else exportActive();
+  });
   $('sub').addEventListener('click', exportAll);
 
   window.addEventListener('resize', resize);

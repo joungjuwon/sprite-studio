@@ -321,3 +321,34 @@ main {
   #center { min-height: 60vh; }
   #opts { overflow: visible; }
 }
+
+/* ------------------------------------------------------------- 2번 탭 */
+#ltitle { font-size: 14px; font-weight: 700; padding: 2px 1px; }
+#lstage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  margin: 4px 0;
+  border: 1px solid #666;
+  background: var(--bg-dark);
+}
+#lview { display: block; width: 100%; height: 100%; cursor: default; }
+#lview.dragging { cursor: move; }
+#lview.panning { cursor: grabbing; }
+#lhint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #bbb;
+  text-align: center;
+  line-height: 1.8;
+  pointer-events: none;
+}
+#lstage.over { outline: 2px dashed var(--accent); outline-offset: -6px; }
+#lstatus { font-size: 11px; padding: 1px; }
+
+.pool-count { color: #0a6; font-weight: 700; font-size: 12px; margin: 0 0 4px; }
+.note.inline { margin: 0; }
+label.nw { width: 74px; flex: none; font-size: 12px; }
+#opts2 input[type=text], #opts2 input[type=number] { width: 68px; }

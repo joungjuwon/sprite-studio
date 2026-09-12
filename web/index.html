@@ -51,16 +51,25 @@
   <!-- ============================================ 가운데: 탭 + 캔버스 -->
   <section id="center">
     <div class="tabs">
-      <button class="tab active" data-s="  1. 스프라이트 추출  ">1. 스프라이트 추출</button>
-      <button class="tab" id="tab2" disabled data-s="  2. 새 시트 만들기  ">2. 새 시트 만들기</button>
+      <button class="tab active" id="tab1" data-s="  1. 스프라이트 추출  ">1. 스프라이트 추출</button>
+      <button class="tab" id="tab2" data-s="  2. 새 시트 만들기  ">2. 새 시트 만들기</button>
     </div>
-    <div class="tab-body">
+    <div class="tab-body" id="body1">
       <div id="title" data-s="시트를 등록하세요">시트를 등록하세요</div>
       <div id="stage">
         <canvas id="view"></canvas>
         <div id="drop-hint"><span data-s="\n시트를 여기로\n끌어다 놓으세요\n">시트를 여기로<br>끌어다 놓으세요</span></div>
       </div>
       <div id="status" data-s="준비됨">준비됨</div>
+    </div>
+
+    <div class="tab-body" id="body2" hidden>
+      <div id="ltitle" data-s="추가된 스프라이트가 없습니다">추가된 스프라이트가 없습니다</div>
+      <div id="lstage">
+        <canvas id="lview"></canvas>
+        <div id="lhint"><span></span></div>
+      </div>
+      <div id="lstatus" data-s="스프라이트를 추가하고 자동 배치를 눌러보세요">스프라이트를 추가하고 자동 배치를 눌러보세요</div>
     </div>
     <pre id="log"></pre>
   </section>
@@ -160,6 +169,79 @@
             <button id="sel-all" data-s="전체 선택">전체 선택</button>
             <button id="sel-none" data-s="선택 해제">선택 해제</button>
           </div>
+          <button id="add-sel" class="wide" data-s="선택만 추가">선택만 추가</button>
+        </div>
+      </div>
+
+      <div class="sec" data-key="collect">
+        <div class="sec-head">
+          <span class="mark">▸</span>
+          <span class="sec-title" data-s="새 시트에 추가">새 시트에 추가</span>
+        </div>
+        <div class="sec-body">
+          <button id="add-this" class="wide" data-s="이 시트 추가">이 시트 추가</button>
+          <button id="add-all" class="wide" data-s="모든 시트 추가">모든 시트 추가</button>
+          <p id="pool-lbl" class="pool-count" data-s="스프라이트 {a0}개">스프라이트 0개</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 2번 탭 옵션 -->
+    <div id="opts2" hidden>
+
+      <div class="sec open" data-key="layout">
+        <div class="sec-head">
+          <span class="mark">▾</span>
+          <span class="sec-title" data-s="배치 옵션">배치 옵션</span>
+        </div>
+        <div class="sec-body">
+          <div class="row">
+            <label class="nw" for="maxw" data-s="최대 너비">최대 너비</label>
+            <input type="text" id="maxw" inputmode="numeric" size="6">
+            <span class="note inline" data-s="비우면 자동">비우면 자동</span>
+          </div>
+          <div class="row">
+            <label class="nw" for="spacing" data-s="간격(px)">간격(px)</label>
+            <input type="number" id="spacing" min="0" max="32" value="2">
+          </div>
+          <div class="row">
+            <label class="nw" for="snap" data-s="스냅(px)">스냅(px)</label>
+            <input type="number" id="snap" min="1" max="64" value="1">
+            <span class="note inline" data-s="드래그 이동 단위">드래그 이동 단위</span>
+          </div>
+          <label class="cb"><input type="checkbox" id="pot">
+            <span data-s="2의 거듭제곱 크기로 맞춤">2의 거듭제곱 크기로 맞춤</span></label>
+          <label class="cb"><input type="checkbox" id="shownames" checked>
+            <span data-s="이름 표시">이름 표시</span></label>
+          <button id="auto-pack" class="wide" data-s="자동 배치">자동 배치</button>
+          <button id="grid-pack" class="wide" data-s="격자 정렬">격자 정렬</button>
+        </div>
+      </div>
+
+      <div class="sec open" data-key="pool">
+        <div class="sec-head">
+          <span class="mark">▾</span>
+          <span class="sec-title" data-s="새 시트 구성">새 시트 구성</span>
+        </div>
+        <div class="sec-body">
+          <p id="pool-lbl2" class="pool-count" data-s="스프라이트 {a0}개">스프라이트 0개</p>
+          <button id="pool-add-img" class="wide" data-s="이미지 추가…">이미지 추가…</button>
+          <button id="pool-remove" class="wide" data-s="선택 제거 (Del)">선택 제거 (Del)</button>
+          <button id="pool-clear" class="wide" data-s="목록 비우기">목록 비우기</button>
+          <input id="pool-file" type="file" accept="image/*" multiple hidden>
+        </div>
+      </div>
+
+      <div class="sec" data-key="savejson">
+        <div class="sec-head">
+          <span class="mark">▸</span>
+          <span class="sec-title" data-s="좌표 파일 함께 저장">좌표 파일 함께 저장</span>
+        </div>
+        <div class="sec-body">
+          <label class="cb"><input type="checkbox" id="with-atlas" checked>
+            <span data-s="좌표 JSON 파일">좌표 JSON 파일</span></label>
+          <p class="note" data-s="엔진에서 프레임 위치를 읽을 때 필요합니다">엔진에서 프레임 위치를 읽을 때 필요합니다</p>
         </div>
       </div>
 
@@ -178,5 +260,6 @@
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 <script src="app.js"></script>
+<script src="layout.js"></script>
 </body>
 </html>
