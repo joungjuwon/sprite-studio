@@ -29,7 +29,8 @@ pip install -r requirements.txt
 python sprite_studio.py
 ```
 
-`tkinterdnd2`가 없으면 드래그앤드롭 대신 파일 선택 버튼으로 동작합니다. `scipy`는 없어도 되지만 큰 시트에서 처리 속도가 크게 차이 납니다.
+`tkinterdnd2`가 없으면 드래그앤드롭 대신 파일 선택 버튼으로 동작합니다. `scipy`는 없어도 됩니다. 없으면 순수 numpy 경로로 넘어가는데 결과는 같고
+속도 차이도 크지 않습니다 (웹 버전이 이 경로를 씁니다).
 
 ## 실행 파일 만들기
 
@@ -40,6 +41,23 @@ python build.py
 ```
 
 `dist/SpriteStudio.exe` 하나만 배포하면 됩니다. 폴더 방식이 필요하면 `python build.py --onedir`을 쓰세요. 실행 속도가 훨씬 빠릅니다.
+
+## 웹 버전
+
+설치 없이 브라우저에서 바로 쓸 수 있는 추출 도구가 있습니다. 데스크톱 앱과
+같은 `spritecore` 코드를 Pyodide 위에서 돌리므로 결과가 같습니다. 이미지는
+브라우저 안에서만 처리되고 서버로 올라가지 않습니다.
+
+로컬에서 확인하려면:
+
+```bash
+python web/serve.py
+```
+
+첫 실행 때 파이썬 엔진(약 10MB)을 내려받느라 몇 초 걸리고, 그 뒤로는
+캐시에서 바로 뜹니다. `main` 에 올리면 GitHub Actions 가 Pages 로 배포합니다.
+
+웹은 추출만 다룹니다. 여러 시트 관리와 배치 편집은 데스크톱 앱을 쓰세요.
 
 ## 코드 구조
 
@@ -53,6 +71,10 @@ spritecore/        UI 와 무관한 핵심 로직 (tkinter 의존 없음)
   util.py            이름 정리 등
 sprite_studio.py   tkinter 데스크톱 UI
 extract_sprites.py 명령줄 추출 도구
+web/               브라우저 UI (Pyodide)
+  bridge.py          spritecore 를 브라우저에서 쓰기 좋게 감싼 층
+  app.js             화면과 입력
+  serve.py           로컬 확인용 서버
 ```
 
 `spritecore` 는 numpy 와 Pillow 만 쓰므로 브라우저(Pyodide)에서도 그대로
