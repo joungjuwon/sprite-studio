@@ -12,6 +12,9 @@ Sprite Studio 빌드 설정.
 import os
 from PyInstaller.utils.hooks import collect_all
 
+# spec 은 desktop/ 에 있고 spritecore 는 그 위에 있다
+REPO = os.path.dirname(os.path.abspath(SPECPATH))
+
 # tkinterdnd2 는 tcl 스크립트와 tkdnd DLL 을 함께 갖고 있어서
 # 이걸 빠뜨리면 실행 시 드래그앤드롭이 죽는다.
 dnd_datas, dnd_binaries, dnd_hidden = collect_all("tkinterdnd2")
@@ -30,7 +33,7 @@ EXCLUDES = [
 
 a = Analysis(
     ["sprite_studio.py"],
-    pathex=[],
+    pathex=[REPO],
     binaries=dnd_binaries,
     datas=dnd_datas,
     hiddenimports=dnd_hidden + ["scipy.ndimage"],

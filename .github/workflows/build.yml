@@ -1,4 +1,4 @@
-﻿name: Build Windows executable
+name: Build Windows executable
 
 on:
   push:
@@ -19,19 +19,22 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pyinstaller
+          python -m pip install -r desktop/requirements.txt pyinstaller
 
+      # dist/ 는 실행 위치 기준이라, desktop/build.py 와 같은 자리에 떨어지도록 지정한다
       - name: Build
-        run: python -m PyInstaller sprite_studio.spec --noconfirm --clean
+        run: >
+          python -m PyInstaller desktop/sprite_studio.spec --noconfirm --clean
+          --distpath desktop/dist --workpath desktop/build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: SpriteStudio-windows
-          path: dist/SpriteStudio.exe
+          path: desktop/dist/SpriteStudio.exe
 
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/SpriteStudio.exe
+          files: desktop/dist/SpriteStudio.exe

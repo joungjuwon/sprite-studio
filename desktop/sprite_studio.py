@@ -24,6 +24,11 @@ import os
 import sys
 import threading
 
+# 저장소 뿌리(상위 폴더)에 있는 spritecore 를 쓴다. exe 로 묶으면 함께
+# 들어가므로 그때는 건드리지 않는다.
+if not getattr(sys, "frozen", False):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import numpy as np
 from PIL import Image, ImageTk
 
