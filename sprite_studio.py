@@ -7,6 +7,9 @@ Sprite Studio - 드래그앤드롭 스프라이트 시트 분리 / 재패킹 GUI
                드래그로 위치 수정, 자동 배치, 격자 정렬, 겹침 경고
   * 개별 저장 / 시트별 일괄 저장 / 새 시트 + 좌표 JSON 저장
 
+이 파일은 tkinter UI 만 담당한다. 감지 / 패킹 / 아틀라스 파싱 / 번역은
+UI 와 무관한 `spritecore` 패키지에 있고, 웹 버전도 그것을 그대로 쓴다.
+
 실행:
     python sprite_studio.py
 
@@ -18,10 +21,8 @@ Sprite Studio - 드래그앤드롭 스프라이트 시트 분리 / 재패킹 GUI
 import json
 import math
 import os
-import re
 import sys
 import threading
-from collections import deque
 
 import numpy as np
 from PIL import Image, ImageTk
@@ -29,425 +30,31 @@ from PIL import Image, ImageTk
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
 
+from spritecore import i18n
+from spritecore import (
+    BORDER,
+    IMAGE_EXTS,
+    LANG_CODES,
+    LANG_NAMES,
+    auto_width,
+    crop_sprites,
+    detect_boxes,
+    extract_atlas_frame,
+    find_overlaps,
+    find_sibling_atlas,
+    grid_positions,
+    next_pot,
+    pack_shelf,
+    parse_atlas_file,
+    safe_name,
+    set_lang,
+    t,
+)
+
 APP_NAME = "Sprite Studio"
 
-# ------------------------------------------------------------------ 언어 설정
-LANG = "ko"                      # ko / en / ja
-UI_FONT = "맑은 고딕"             # 언어에 맞춰 set_lang() 이 바꾼다
-FONTS = {"ko": "맑은 고딕", "en": "Segoe UI", "ja": "Meiryo"}
-LANG_CODES = ("ko", "en", "ja")
-LANG_NAMES = {"ko": "한국어", "en": "English", "ja": "日本語"}
-
-
-def set_lang(code):
-    """언어와 그에 맞는 기본 글꼴을 지정한다."""
-    global LANG, UI_FONT
-    LANG = code if code in ("ko", "en", "ja") else "ko"
-    UI_FONT = FONTS[LANG]
-
-
-def t(key, **kw):
-    """번역 문자열. 표에 없으면 한국어 원문을 그대로 쓴다."""
-    text = TRANSLATIONS.get(LANG, {}).get(key, key)
-    return text.format(**kw) if kw else text
-
-
-TRANSLATIONS = {
-    "en": {
-        "추출": "Extract",
-        "추출 옵션": "Extract options",
-        "선택한 시트에만 적용됩니다": "Applies to the selected sheet only",
-        "이름 접두어로 하위 폴더 만들기": "Make a subfolder named after the prefix",
-        "먼저 시트를 등록하세요.": "Register a sheet first.",
-        "PNG {a0}장을 저장했습니다.\n\n{a1}": "Saved {a0} PNG files.\n\n{a1}",
-        "시트 {a0}장에서 PNG {a1}장을 저장했습니다.\n\n{a2}":
-            "Saved {a1} PNG files from {a0} sheets.\n\n{a2}",
-        "새 시트를 저장했습니다.\n\n{a0}\n{a1}×{a2} · 스프라이트 {a3}개":
-            "Saved the new sheet.\n\n{a0}\n{a1}×{a2} · {a3} sprites",
-        "같은 접두어를 쓰는 시트가 있어 한 폴더에 섞입니다: {a0}":
-            "Sheets share a prefix, so they land in the same folder: {a0}",
-        "\n시트를 여기로\n끌어다 놓으세요\n": "\nDrop sheets\nhere\n",
-        "   ·   겹침 {a0}개": "   ·   {a0} overlapping",
-        "   ⚠ 빨간 테두리는 서로 겹친 항목입니다": "   ⚠ Red outlines are overlapping",
-        "  (선택한 것만)": "  (selection only)",
-        "  1. 스프라이트 추출  ": "  1. Extract  ",
-        "  2. 새 시트 만들기  ": "  2. Build sheet  ",
-        "  {a0}: {a1}개": "  {a0}: {a1}",
-        " 외": " and more",
-        "'{a0}' 설정을 {a1}장에 복사했습니다.": "Copied settings from '{a0}' to {a1} sheet(s).",
-        "(폴더 미지정)": "(no folder set)",
-        "2의 거듭제곱 크기로 맞춤": "Round size to power of two",
-        "PNG {a0}×{a1}{a2} · 스프라이트 {a3}개\n{a4}": "PNG {a0}×{a1}{a2} · {a3} sprites\n{a4}",
-        "PNG {a0}장 · {a1}_000 …\n{a2}": "{a0} PNG files · {a1}_000 …\n{a2}",
-        "[{a0}] {a1}  {a2}×{a3}  위치 ({a4}, {a5})  ·  드래그로 이동, Del 로 제거":
-            "[{a0}] {a1}  {a2}×{a3}  at ({a4}, {a5})  ·  drag to move, Del to remove",
-        "[{a0}] {a1} · {a2}×{a3} · 출처: {a4}": "[{a0}] {a1} · {a2}×{a3} · from: {a4}",
-        "tkinterdnd2 미설치 → 드래그앤드롭 꺼짐. '시트 추가' 버튼을 쓰거나 python -m pip install tkinterdnd2 로 설치하세요.":
-            "tkinterdnd2 is missing, so drag and drop is off. Use the 'Add sheets' button, "
-            "or install it with: python -m pip install tkinterdnd2",
-        "{a0}  ({a1}개) → 2번 탭에 놓기": "{a0}  ({a1}) → drop on tab 2",
-        "{a0} · {a1}프레임": "{a0} · {a1} frames",
-        "{a0} 준비 완료. 시트 이미지를 창에 끌어다 놓으세요 (여러 장 동시 가능).":
-            "{a0} is ready. Drop sheet images onto the window (several at once is fine).",
-        "{a0}: {a1} {a2}프레임 연결 ({a3})": "{a0}: linked {a1} with {a2} frames ({a3})",
-        "{a0}: {a1} → {a2}개 추가 (총 {a3}개)": "{a0}: {a1} → added {a2} (total {a3})",
-        "{a0}: {a1}개 저장 → {a2}": "{a0}: saved {a1} → {a2}",
-        "{a0}: 좌표 파일 연결을 해제하고 자동 감지로 돌아갑니다.":
-            "{a0}: unlinked the atlas file, back to pixel detection.",
-        "{a0}개 · {a1}  ·  {a2}  ·  드래그로 여러 개 선택 가능 (Shift=추가)":
-            "{a0} items · {a1}  ·  {a2}  ·  drag to select several (Shift adds)",
-        "{a0}개 감지": "{a0} found",
-        "{a0}개 감지됨": "{a0} found",
-        "{a0}개 선택됨  ·  함께 드래그하면 같이 움직입니다  ·  Del 로 한 번에 제거":
-            "{a0} selected  ·  drag any of them to move together  ·  Del removes them all",
-        "{a0}개 이동 ({a1:+d}, {a2:+d})": "moved {a0} by ({a1:+d}, {a2:+d})",
-        "{a0}개 이동 → ({a1:+d}, {a2:+d})": "moving {a0} → ({a1:+d}, {a2:+d})",
-        "{a0}개 이미지를 새 시트에 추가 (총 {a1}개)": "Added {a0} images to the new sheet (total {a1})",
-        "{a0}개 저장 완료": "Saved {a0} files",
-        "{a0}개 제거: {a1}{a2}": "Removed {a0}: {a1}{a2}",
-        "{a0}개 중 {a1}개 선택됨  ·  {a2}  ·  빈 곳 드래그=범위 선택, 휠=확대, 가운데/오른쪽 드래그=이동, 더블클릭=화면 맞춤":
-            "{a1} of {a0} selected  ·  {a2}  ·  drag empty space=box select, wheel=zoom, "
-            "middle/right drag=pan, double-click=fit",
-        "{a0}개를 목록에서 제외했습니다. (슬라이더를 움직이면 다시 감지됩니다)":
-            "Excluded {a0} from the list. (moving a slider detects them again)",
-        "{a0}장 / {a1}개 저장 완료": "{a0} sheets / {a1} files saved",
-        "{a0}장 등록 (총 {a1}장)": "Registered {a0} (total {a1})",
-        "간격(px)": "Spacing (px)",
-        "개별 이미지로 내보내기": "Export individual images",
-        "격자 정렬": "Grid align",
-        "격자 정렬: {a0}개 (화면에 놓인 순서 기준)": "Grid align: {a0} (by on-screen order)",
-        "겹친 항목이 {a0}개 있습니다. 그대로 저장할까요?": "{a0} items overlap. Save anyway?",
-        "단색 배경": "Solid background",
-        "추가": "Add",
-        "추가된 것이 없습니다": "Nothing added",
-        "추가할 스프라이트가 없습니다. 먼저 시트에서 추출하세요.":
-            "No sprites to add. Extract from a sheet first.",
-        "새 시트 구성": "Sheet contents",
-        "목록을 비웠습니다.": "Cleared the list.",
-        "추가된 스프라이트가 없습니다": "No sprites added yet",
-        "추가된 스프라이트가 없습니다. 1번 탭에서 '추가'를 먼저 눌러주세요.":
-            "No sprites added yet. Press 'Add' on tab 1 first.",
-        "준비됨": "Ready",
-        "스프라이트 0개": "0 sprites",
-        "스프라이트 {a0}개": "{a0} sprites",
-        "조각 합치기(px)": "Merge gap (px)",
-        "드래그 이동 단위": "drag step",
-        "드래그로": "Drag",
-        "등록된 시트 (0)": "Sheets (0)",
-        "등록된 시트 ({a0})": "Sheets ({a0})",
-        "등록된 시트가 없습니다.": "No sheets registered.",
-        "등록된 시트를 모두 지울까요?": "Remove every registered sheet?",
-        "먼저 시트를 등록하고 추출하세요.": "Register a sheet and extract first.",
-        "먼저 시트를 선택하세요.": "Select a sheet first.",
-        "먼저 화면에서 스프라이트를 선택하세요 (빈 곳을 드래그하면 범위 선택).":
-            "Select sprites on the canvas first (drag empty space for box select).",
-        "모든 시트 추가": "Add all sheets",
-        "모든 시트 한 번에 내보내기": "Export every sheet at once",
-        "모든 파일": "All files",
-        "목록 비우기": "Clear list",
-        "무제": "Untitled",
-        "배경색 허용 범위": "Background tolerance",
-        "배경색 = RGB{a0}": "Background = RGB{a0}",
-        "배경으로 쓸 픽셀을 클릭하세요": "Click a pixel to use as the background",
-        "배치 옵션": "Layout options",
-        "2번 탭 화면이나 탭 머리글 위에 놓아야 추가됩니다.":
-            "Drop it on the tab 2 canvas or on its tab header.",
-        "새 시트에 추가": "Add to new sheet",
-        "범위 선택: {a0}개": "Box select: {a0}",
-        "추출 옵션 (선택한 시트에만 적용)": "Extract options (current sheet only)",
-        "분석 오류: {a0}": "Analysis error: {a0}",
-        "분석 중…": "Analyzing…",
-        "불러오기…": "Load…",
-        "비우면 자동": "blank = auto",
-        "스프라이트 선택 (화면에서 드래그)": "Sprite selection (drag on canvas)",
-        "새 시트 {a0}×{a1}   ·   {a2}개   ·   {a3:.0f}%{a4}":
-            "New sheet {a0}×{a1}   ·   {a2} items   ·   {a3:.0f}%{a4}",
-        "새 시트 저장": "Save new sheet",
-        "새 시트 저장: {a0} ({a1}×{a2}, {a3}개)": "Saved new sheet: {a0} ({a1}×{a2}, {a3} items)",
-        "새 시트로 내보내기": "Export new sheet",
-        "새 시트에 넣을 이미지 선택": "Choose images for the new sheet",
-        "색": "Color",
-        "선택 {a0}개 내보내기": "Export {a0} selected",
-        "선택 추가: {a0} → {a1}개 (총 {a2}개)": "Added selection: {a0} → {a1} (total {a2})",
-        "이 시트 추가": "Add this sheet",
-        "선택 시트 제거": "Remove current sheet",
-        "선택 제거 (Del)": "Remove selected (Del)",
-        "선택 해제": "Deselect",
-        "선택만 추가": "Add selection only",
-        "선택한 스프라이트 제외": "Exclude selected sprites",
-        "스냅(px)": "Snap (px)",
-        "스포이트": "Picker",
-        "스프라이트 시트 선택 (여러 개 가능)": "Choose sprite sheets (several allowed)",
-        "스프라이트를 추가하고 자동 배치를 눌러보세요": "Add sprites, then press Auto pack",
-        "시트 목록을 비웠습니다. (다음 실행 때도 비어 있습니다)":
-            "Cleared the sheet list. (it stays empty next launch)",
-        "시트 이름별 하위 폴더로 나누기": "Separate folder per sheet name",
-        "시트 추가…": "Add sheets…",
-        "시트를 등록하고 추출하면 내보낼 수 있습니다": "Register a sheet and extract to export",
-        "시트를 등록하세요": "Register a sheet",
-        "썸네일을 2번 탭으로 끌어다 놓으면 추가됩니다": "Drag a thumbnail onto tab 2 to add it",
-        "알 수 없음": "unknown",
-        "없음 - 픽셀로 자동 감지 중": "None - detecting from pixels",
-        "엔진에서 프레임 위치를 읽을 때 필요합니다": "Needed to read frame positions in your engine",
-        "여기에 시트 이미지를 끌어다 놓으세요": "Drop a sheet image here",
-        "여백(px)": "Padding (px)",
-        "열기 실패 {a0}: {a1}": "Could not open {a0}: {a1}",
-        "왼쪽 시트 썸네일을 이 화면으로 끌어다 놓거나\n1번 탭에서 '추가'를 누르세요\n(낱장 이미지 파일도 여기로 놓을 수 있습니다)":
-            "Drag a sheet thumbnail here from the left,\nor press 'Add' on tab 1\n"
-            "(single image files can be dropped here too)",
-        "왼쪽 썸네일을 이 탭으로 끌어다 놓으세요": "Drag a thumbnail from the left onto this tab",
-        "이 설정을 모든 시트에 적용": "Apply these settings to all sheets",
-        "이름 접두어": "Name prefix",
-        "이름 표시": "Show names",
-        "이미 등록됨: {a0}": "Already registered: {a0}",
-        "이미지": "Images",
-        "이미지 추가…": "Add images…",
-        "이미지 파일이 아닙니다.": "That is not an image file.",
-        "자동 배치": "Auto pack",
-        "자동 배치: {a0}개": "Auto pack: {a0}",
-        "잘라내기 · 파일 이름": "Crop and naming",
-        "저장 폴더": "Output folder",
-        "저장 폴더 선택": "Choose the output folder",
-        "저장 폴더를 먼저 지정하세요.": "Set an output folder first.",
-        "전체 비우기": "Clear all",
-        "전체 선택": "Select all",
-        "정사각형으로 크기 통일": "Pad all to equal squares",
-        "제거: {a0}": "Removed: {a0}",
-        "제거할 항목을 먼저 클릭해서 선택하세요": "Click to select the items you want to remove",
-        "제외할 스프라이트를 먼저 선택하세요.": "Select the sprites you want to exclude first.",
-        "좌표 JSON 파일": "Coordinate JSON file",
-        "좌표 파일": "Atlas files",
-        "좌표 파일 (아틀라스)": "Atlas file",
-        "좌표 파일 {a0}프레임": "Atlas file · {a0} frames",
-        "좌표 파일 기준": "from atlas file",
-        "좌표 파일 사용": "Use the atlas file",
-        "좌표 파일 선택": "Choose an atlas file",
-        "좌표 파일 실패 {a0}: {a1}": "Atlas failed {a0}: {a1}",
-        "좌표 파일을 읽지 못했습니다.\n{a0}": "Could not read the atlas file.\n{a0}",
-        "지난 작업에서 {a0}장을 복원했습니다.": "Restored {a0} sheet(s) from the last session.",
-        "지원하지 않는 형식입니다: {a0}": "Unsupported format: {a0}",
-        "직접 추가": "added directly",
-        "총 {a0}개 저장 → {a1}": "Saved {a0} files → {a1}",
-        "최대 너비": "Max width",
-        "최소 가로·세로(px)": "Min width/height (px)",
-        "최소 픽셀 수": "Min pixel count",
-        "내보내기": "Export",
-        "출처: {a0}{a1}   ·   빈 곳 드래그=범위 선택, 휠=확대, 가운데 드래그=이동":
-            "From: {a0}{a1}   ·   drag empty space=box select, wheel=zoom, middle drag=pan",
-        "트리밍 {a0}": "trimmed {a0}",
-        "트리밍 원래 크기로 복원": "Restore trimmed size",
-        "파일이 없어 건너뜀: {a0}{a1}": "Skipped, file missing: {a0}{a1}",
-        "폴더 선택…": "Choose folder…",
-        "폴더 열기": "Open folder",
-        "폴더를 만들 수 없습니다.\n{a0}": "Could not create the folder.\n{a0}",
-        "프레임 정보를 찾지 못했습니다.": "No frame data found.",
-        "픽셀 자동 감지": "pixel detection",
-        "좌표 파일 함께 저장": "Save coordinates too",
-        "해제": "Unlink",
-        "회전 {a0}": "rotated {a0}",
-        "회전 방향 반대로 (그림이 뒤집혀 나올 때)": "Flip rotation (if sprites come out sideways)",
-        "언어": "Language",
-    },
-    "ja": {
-        "추출": "抽出",
-        "추출 옵션": "抽出オプション",
-        "선택한 시트에만 적용됩니다": "選択中のシートにのみ適用されます",
-        "이름 접두어로 하위 폴더 만들기": "名前の接頭辞でサブフォルダーを作る",
-        "먼저 시트를 등록하세요.": "先にシートを登録してください。",
-        "PNG {a0}장을 저장했습니다.\n\n{a1}": "PNG {a0}枚を保存しました。\n\n{a1}",
-        "시트 {a0}장에서 PNG {a1}장을 저장했습니다.\n\n{a2}":
-            "シート{a0}枚からPNG {a1}枚を保存しました。\n\n{a2}",
-        "새 시트를 저장했습니다.\n\n{a0}\n{a1}×{a2} · 스프라이트 {a3}개":
-            "新しいシートを保存しました。\n\n{a0}\n{a1}×{a2} · スプライト{a3}個",
-        "같은 접두어를 쓰는 시트가 있어 한 폴더에 섞입니다: {a0}":
-            "同じ接頭辞のシートがあるため同じフォルダーに混ざります: {a0}",
-        "\n시트를 여기로\n끌어다 놓으세요\n": "\nシートを\nここにドロップ\n",
-        "   ·   겹침 {a0}개": "   ·   重なり {a0}個",
-        "   ⚠ 빨간 테두리는 서로 겹친 항목입니다": "   ⚠ 赤い枠は重なっている項目です",
-        "  (선택한 것만)": "  (選択分のみ)",
-        "  1. 스프라이트 추출  ": "  1. スプライト抽出  ",
-        "  2. 새 시트 만들기  ": "  2. 新シート作成  ",
-        "  {a0}: {a1}개": "  {a0}: {a1}個",
-        " 외": " ほか",
-        "'{a0}' 설정을 {a1}장에 복사했습니다.": "'{a0}' の設定を {a1} 枚にコピーしました。",
-        "(폴더 미지정)": "(フォルダー未指定)",
-        "2의 거듭제곱 크기로 맞춤": "2の累乗サイズに合わせる",
-        "PNG {a0}×{a1}{a2} · 스프라이트 {a3}개\n{a4}": "PNG {a0}×{a1}{a2} · スプライト {a3}個\n{a4}",
-        "PNG {a0}장 · {a1}_000 …\n{a2}": "PNG {a0}枚 · {a1}_000 …\n{a2}",
-        "[{a0}] {a1}  {a2}×{a3}  위치 ({a4}, {a5})  ·  드래그로 이동, Del 로 제거":
-            "[{a0}] {a1}  {a2}×{a3}  位置 ({a4}, {a5})  ·  ドラッグで移動、Del で削除",
-        "[{a0}] {a1} · {a2}×{a3} · 출처: {a4}": "[{a0}] {a1} · {a2}×{a3} · 出典: {a4}",
-        "tkinterdnd2 미설치 → 드래그앤드롭 꺼짐. '시트 추가' 버튼을 쓰거나 python -m pip install tkinterdnd2 로 설치하세요.":
-            "tkinterdnd2 が未インストールのため、ドラッグ＆ドロップは無効です。"
-            "「シート追加」ボタンを使うか、python -m pip install tkinterdnd2 でインストールしてください。",
-        "{a0}  ({a1}개) → 2번 탭에 놓기": "{a0}  ({a1}個) → 2番タブにドロップ",
-        "{a0} · {a1}프레임": "{a0} · {a1} フレーム",
-        "{a0} 준비 완료. 시트 이미지를 창에 끌어다 놓으세요 (여러 장 동시 가능).":
-            "{a0} の準備ができました。シート画像をウィンドウにドロップしてください（複数同時可）。",
-        "{a0}: {a1} {a2}프레임 연결 ({a3})": "{a0}: {a1} の {a2} フレームを連携 ({a3})",
-        "{a0}: {a1} → {a2}개 추가 (총 {a3}개)": "{a0}: {a1} → {a2}個追加 (合計 {a3}個)",
-        "{a0}: {a1}개 저장 → {a2}": "{a0}: {a1}個を保存 → {a2}",
-        "{a0}: 좌표 파일 연결을 해제하고 자동 감지로 돌아갑니다.":
-            "{a0}: 座標ファイルの連携を解除し、自動検出に戻ります。",
-        "{a0}개 · {a1}  ·  {a2}  ·  드래그로 여러 개 선택 가능 (Shift=추가)":
-            "{a0}個 · {a1}  ·  {a2}  ·  ドラッグで複数選択 (Shift で追加)",
-        "{a0}개 감지": "{a0}個を検出",
-        "{a0}개 감지됨": "{a0}個を検出",
-        "{a0}개 선택됨  ·  함께 드래그하면 같이 움직입니다  ·  Del 로 한 번에 제거":
-            "{a0}個選択中  ·  ドラッグすると一緒に動きます  ·  Del でまとめて削除",
-        "{a0}개 이동 ({a1:+d}, {a2:+d})": "{a0}個を移動 ({a1:+d}, {a2:+d})",
-        "{a0}개 이동 → ({a1:+d}, {a2:+d})": "{a0}個を移動 → ({a1:+d}, {a2:+d})",
-        "{a0}개 이미지를 새 시트에 추가 (총 {a1}개)": "{a0}枚を新シートに追加 (合計 {a1}個)",
-        "{a0}개 저장 완료": "{a0}個を保存しました",
-        "{a0}개 제거: {a1}{a2}": "{a0}個を削除: {a1}{a2}",
-        "{a0}개 중 {a1}개 선택됨  ·  {a2}  ·  빈 곳 드래그=범위 선택, 휠=확대, 가운데/오른쪽 드래그=이동, 더블클릭=화면 맞춤":
-            "{a0}個中 {a1}個を選択  ·  {a2}  ·  空白ドラッグ=範囲選択、ホイール=拡大、"
-            "中/右ドラッグ=移動、ダブルクリック=全体表示",
-        "{a0}개를 목록에서 제외했습니다. (슬라이더를 움직이면 다시 감지됩니다)":
-            "{a0}個をリストから除外しました。(スライダーを動かすと再検出されます)",
-        "{a0}장 / {a1}개 저장 완료": "{a0}枚 / {a1}個を保存しました",
-        "{a0}장 등록 (총 {a1}장)": "{a0}枚を登録 (合計 {a1}枚)",
-        "간격(px)": "間隔(px)",
-        "개별 이미지로 내보내기": "個別画像として出力",
-        "격자 정렬": "グリッド整列",
-        "격자 정렬: {a0}개 (화면에 놓인 순서 기준)": "グリッド整列: {a0}個 (画面上の並び順)",
-        "겹친 항목이 {a0}개 있습니다. 그대로 저장할까요?": "{a0}個が重なっています。このまま保存しますか？",
-        "단색 배경": "単色背景",
-        "추가": "追加",
-        "추가된 것이 없습니다": "追加されたものがありません",
-        "추가할 스프라이트가 없습니다. 먼저 시트에서 추출하세요.":
-            "追加するスプライトがありません。先にシートから抽出してください。",
-        "새 시트 구성": "新シートの構成",
-        "목록을 비웠습니다.": "リストを空にしました。",
-        "추가된 스프라이트가 없습니다": "追加されたスプライトがありません",
-        "추가된 스프라이트가 없습니다. 1번 탭에서 '추가'를 먼저 눌러주세요.":
-            "追加されたスプライトがありません。1番タブで「追加」を押してください。",
-        "준비됨": "準備完了",
-        "스프라이트 0개": "スプライト 0個",
-        "스프라이트 {a0}개": "スプライト {a0}個",
-        "조각 합치기(px)": "断片を結合(px)",
-        "드래그 이동 단위": "ドラッグ移動単位",
-        "드래그로": "ドラッグ",
-        "등록된 시트 (0)": "登録シート (0)",
-        "등록된 시트 ({a0})": "登録シート ({a0})",
-        "등록된 시트가 없습니다.": "登録されたシートがありません。",
-        "등록된 시트를 모두 지울까요?": "登録シートをすべて削除しますか？",
-        "먼저 시트를 등록하고 추출하세요.": "先にシートを登録して抽出してください。",
-        "먼저 시트를 선택하세요.": "先にシートを選択してください。",
-        "먼저 화면에서 스프라이트를 선택하세요 (빈 곳을 드래그하면 범위 선택).":
-            "先に画面でスプライトを選択してください（空白をドラッグで範囲選択）。",
-        "모든 시트 추가": "全シートを追加",
-        "모든 시트 한 번에 내보내기": "全シートを一括出力",
-        "모든 파일": "すべてのファイル",
-        "목록 비우기": "リストを空にする",
-        "무제": "無題",
-        "배경색 허용 범위": "背景色の許容範囲",
-        "배경색 = RGB{a0}": "背景色 = RGB{a0}",
-        "배경으로 쓸 픽셀을 클릭하세요": "背景にするピクセルをクリックしてください",
-        "배치 옵션": "配置オプション",
-        "2번 탭 화면이나 탭 머리글 위에 놓아야 추가됩니다.":
-            "2番タブの画面か、タブ見出しの上にドロップしてください。",
-        "새 시트에 추가": "新シートに追加",
-        "범위 선택: {a0}개": "範囲選択: {a0}個",
-        "추출 옵션 (선택한 시트에만 적용)": "抽出オプション (選択中のシートのみ)",
-        "분석 오류: {a0}": "解析エラー: {a0}",
-        "분석 중…": "解析中…",
-        "불러오기…": "読み込み…",
-        "비우면 자동": "空欄で自動",
-        "스프라이트 선택 (화면에서 드래그)": "スプライトの選択 (画面でドラッグ)",
-        "새 시트 {a0}×{a1}   ·   {a2}개   ·   {a3:.0f}%{a4}":
-            "新シート {a0}×{a1}   ·   {a2}個   ·   {a3:.0f}%{a4}",
-        "새 시트 저장": "新シートを保存",
-        "새 시트 저장: {a0} ({a1}×{a2}, {a3}개)": "新シートを保存: {a0} ({a1}×{a2}, {a3}個)",
-        "새 시트로 내보내기": "新シートとして出力",
-        "새 시트에 넣을 이미지 선택": "新シートに入れる画像を選択",
-        "색": "色",
-        "선택 {a0}개 내보내기": "選択 {a0}個を出力",
-        "선택 추가: {a0} → {a1}개 (총 {a2}개)": "選択を追加: {a0} → {a1}個 (合計 {a2}個)",
-        "이 시트 추가": "このシートを追加",
-        "선택 시트 제거": "選択シートを削除",
-        "선택 제거 (Del)": "選択を削除 (Del)",
-        "선택 해제": "選択解除",
-        "선택만 추가": "選択分のみ追加",
-        "선택한 스프라이트 제외": "選択したスプライトを除外",
-        "스냅(px)": "スナップ(px)",
-        "스포이트": "スポイト",
-        "스프라이트 시트 선택 (여러 개 가능)": "スプライトシートを選択 (複数可)",
-        "스프라이트를 추가하고 자동 배치를 눌러보세요": "スプライトを追加して自動配置を押してください",
-        "시트 목록을 비웠습니다. (다음 실행 때도 비어 있습니다)":
-            "シート一覧を空にしました。(次回起動時も空のままです)",
-        "시트 이름별 하위 폴더로 나누기": "シート名ごとにサブフォルダーを分ける",
-        "시트 추가…": "シート追加…",
-        "시트를 등록하고 추출하면 내보낼 수 있습니다": "シートを登録して抽出すると出力できます",
-        "시트를 등록하세요": "シートを登録してください",
-        "썸네일을 2번 탭으로 끌어다 놓으면 추가됩니다": "サムネイルを2番タブにドラッグすると追加されます",
-        "알 수 없음": "不明",
-        "없음 - 픽셀로 자동 감지 중": "なし - ピクセルから自動検出中",
-        "엔진에서 프레임 위치를 읽을 때 필요합니다": "エンジンでフレーム位置を読むのに必要です",
-        "여기에 시트 이미지를 끌어다 놓으세요": "ここにシート画像をドロップしてください",
-        "여백(px)": "余白(px)",
-        "열기 실패 {a0}: {a1}": "読み込み失敗 {a0}: {a1}",
-        "왼쪽 시트 썸네일을 이 화면으로 끌어다 놓거나\n1번 탭에서 '추가'를 누르세요\n(낱장 이미지 파일도 여기로 놓을 수 있습니다)":
-            "左のシートサムネイルをこの画面にドラッグするか、\n1番タブで「追加」を押してください\n"
-            "(個別の画像ファイルもここにドロップできます)",
-        "왼쪽 썸네일을 이 탭으로 끌어다 놓으세요": "左のサムネイルをこのタブにドラッグしてください",
-        "이 설정을 모든 시트에 적용": "この設定を全シートに適用",
-        "이름 접두어": "名前の接頭辞",
-        "이름 표시": "名前を表示",
-        "이미 등록됨: {a0}": "登録済み: {a0}",
-        "이미지": "画像",
-        "이미지 추가…": "画像を追加…",
-        "이미지 파일이 아닙니다.": "画像ファイルではありません。",
-        "자동 배치": "自動配置",
-        "자동 배치: {a0}개": "自動配置: {a0}個",
-        "잘라내기 · 파일 이름": "切り出しとファイル名",
-        "저장 폴더": "保存フォルダー",
-        "저장 폴더 선택": "保存フォルダーを選択",
-        "저장 폴더를 먼저 지정하세요.": "先に保存フォルダーを指定してください。",
-        "전체 비우기": "すべて削除",
-        "전체 선택": "すべて選択",
-        "정사각형으로 크기 통일": "正方形でサイズを統一",
-        "제거: {a0}": "削除: {a0}",
-        "제거할 항목을 먼저 클릭해서 선택하세요": "削除する項目をクリックして選択してください",
-        "제외할 스프라이트를 먼저 선택하세요.": "除外するスプライトを先に選択してください。",
-        "좌표 JSON 파일": "座標JSONファイル",
-        "좌표 파일": "座標ファイル",
-        "좌표 파일 (아틀라스)": "座標ファイル (アトラス)",
-        "좌표 파일 {a0}프레임": "座標ファイル {a0}フレーム",
-        "좌표 파일 기준": "座標ファイル基準",
-        "좌표 파일 사용": "座標ファイルを使う",
-        "좌표 파일 선택": "座標ファイルを選択",
-        "좌표 파일 실패 {a0}: {a1}": "座標ファイル失敗 {a0}: {a1}",
-        "좌표 파일을 읽지 못했습니다.\n{a0}": "座標ファイルを読み込めませんでした。\n{a0}",
-        "지난 작업에서 {a0}장을 복원했습니다.": "前回の作業から {a0}枚を復元しました。",
-        "지원하지 않는 형식입니다: {a0}": "対応していない形式です: {a0}",
-        "직접 추가": "直接追加",
-        "총 {a0}개 저장 → {a1}": "合計 {a0}個を保存 → {a1}",
-        "최대 너비": "最大幅",
-        "최소 가로·세로(px)": "最小の幅・高さ(px)",
-        "최소 픽셀 수": "最小ピクセル数",
-        "내보내기": "出力",
-        "출처: {a0}{a1}   ·   빈 곳 드래그=범위 선택, 휠=확대, 가운데 드래그=이동":
-            "出典: {a0}{a1}   ·   空白ドラッグ=範囲選択、ホイール=拡大、中ドラッグ=移動",
-        "트리밍 {a0}": "トリミング {a0}",
-        "트리밍 원래 크기로 복원": "トリミングを元のサイズに復元",
-        "파일이 없어 건너뜀: {a0}{a1}": "ファイルが無いためスキップ: {a0}{a1}",
-        "폴더 선택…": "フォルダー選択…",
-        "폴더 열기": "フォルダーを開く",
-        "폴더를 만들 수 없습니다.\n{a0}": "フォルダーを作成できません。\n{a0}",
-        "프레임 정보를 찾지 못했습니다.": "フレーム情報が見つかりません。",
-        "픽셀 자동 감지": "ピクセル自動検出",
-        "좌표 파일 함께 저장": "座標ファイルも保存",
-        "해제": "解除",
-        "회전 {a0}": "回転 {a0}",
-        "회전 방향 반대로 (그림이 뒤집혀 나올 때)": "回転方向を反転 (絵が横向きになる場合)",
-        "언어": "言語",
-    },
-}
 SETTINGS_PATH = os.path.join(os.path.expanduser("~"), ".sprite_studio.json")
-IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tga")
 THUMB = 64
-BORDER = 2
 
 BG_DARK = "#2b2b2b"
 BG_ROW = "#3c3f41"
@@ -462,452 +69,6 @@ SEC_BG = "#dfe3e6"          # 접이식 옵션 머리글
 SEC_BG_HOVER = "#cdd4d9"
 SEC_FG = "#1f2328"
 SEC_MARK = "#5a6672"
-
-
-# ============================================================ 핵심 이미지 로직
-def build_mask(img, bg_color=None, tol=10, alpha_threshold=8):
-    """스프라이트가 있는 픽셀만 True 인 2차원 배열."""
-    arr = np.array(img)
-    if bg_color is None:
-        return arr[:, :, 3] > alpha_threshold
-    bg = np.array(bg_color, dtype=np.int16)
-    diff = np.abs(arr[:, :, :3].astype(np.int16) - bg).max(axis=2)
-    return (diff > tol) & (arr[:, :, 3] > alpha_threshold)
-
-
-def dilate(mask, r):
-    """가까운 덩어리를 묶기 위해 마스크를 r 픽셀만큼 부풀린다."""
-    if r <= 0:
-        return mask
-    out = mask.copy()
-    h, w = mask.shape
-    for dy in range(-r, r + 1):
-        for dx in range(-r, r + 1):
-            if dy == 0 and dx == 0:
-                continue
-            shifted = np.zeros_like(mask)
-            ys, ye = max(0, dy), min(h, h + dy)
-            xs, xe = max(0, dx), min(w, w + dx)
-            shifted[ys:ye, xs:xe] = mask[ys - dy:ye - dy, xs - dx:xe - dx]
-            out |= shifted
-    return out
-
-
-def label_components(mask):
-    """이어진 픽셀 덩어리마다 번호를 매긴다."""
-    try:
-        from scipy import ndimage
-        return ndimage.label(mask, structure=np.ones((3, 3), bool))
-    except ImportError:
-        pass
-
-    h, w = mask.shape
-    labels = np.zeros((h, w), dtype=np.int32)
-    nbrs = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-    current = 0
-    for y in range(h):
-        for x in range(w):
-            if not mask[y, x] or labels[y, x]:
-                continue
-            current += 1
-            q = deque([(y, x)])
-            labels[y, x] = current
-            while q:
-                cy, cx = q.popleft()
-                for dy, dx in nbrs:
-                    ny, nx = cy + dy, cx + dx
-                    if 0 <= ny < h and 0 <= nx < w and mask[ny, nx] and not labels[ny, nx]:
-                        labels[ny, nx] = current
-                        q.append((ny, nx))
-    return labels, current
-
-
-def bboxes_from_labels(labels, n):
-    """라벨별 경계 상자 목록."""
-    if n == 0:
-        return []
-    ys_all, xs_all = np.nonzero(labels)
-    if ys_all.size == 0:
-        return []
-    ids = labels[ys_all, xs_all]
-    order = np.argsort(ids, kind="stable")
-    ids, ys_all, xs_all = ids[order], ys_all[order], xs_all[order]
-    starts = np.searchsorted(ids, np.arange(1, n + 1), side="left")
-    ends = np.searchsorted(ids, np.arange(1, n + 1), side="right")
-    boxes = []
-    for s, e in zip(starts, ends):
-        if s >= e:
-            continue
-        ys, xs = ys_all[s:e], xs_all[s:e]
-        boxes.append((int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1))
-    return boxes
-
-
-def sort_reading_order(boxes):
-    """왼쪽에서 오른쪽, 위에서 아래 순서로 정렬."""
-    if not boxes:
-        return []
-    row_tol = max(1, int(np.median([b[3] - b[1] for b in boxes]) * 0.5))
-    remaining = sorted(boxes, key=lambda b: (b[1], b[0]))
-    ordered = []
-    while remaining:
-        top = remaining[0][1]
-        row = [b for b in remaining if b[1] < top + row_tol]
-        rest = [b for b in remaining if b[1] >= top + row_tol]
-        ordered.extend(sorted(row, key=lambda b: b[0]))
-        remaining = rest
-    return ordered
-
-
-def detect_boxes(img, bg_color=None, tol=10, merge=0, min_area=4, min_size=2):
-    """이미지에서 스프라이트 경계 상자들을 찾아 읽는 순서로 반환."""
-    mask = build_mask(img, bg_color, tol)
-    labels, n = label_components(dilate(mask, merge))
-    labels = np.where(mask, labels, 0)          # 상자는 실제 픽셀 기준
-    keep = []
-    for b in bboxes_from_labels(labels, n):
-        if (b[2] - b[0]) < min_size or (b[3] - b[1]) < min_size:
-            continue
-        if mask[b[1]:b[3], b[0]:b[2]].sum() < min_area:
-            continue
-        keep.append(b)
-    return sort_reading_order(keep)
-
-
-def crop_sprites(img, boxes, pad=0, square=False):
-    """경계 상자대로 잘라 PIL 이미지 목록으로 반환."""
-    W, H = img.size
-    side = 0
-    if square and boxes:
-        side = max(max(b[2] - b[0] for b in boxes),
-                   max(b[3] - b[1] for b in boxes)) + pad * 2
-    out = []
-    for x0, y0, x1, y1 in boxes:
-        bx0, by0 = max(0, x0 - pad), max(0, y0 - pad)
-        bx1, by1 = min(W, x1 + pad), min(H, y1 + pad)
-        crop = img.crop((bx0, by0, bx1, by1))
-        if square:
-            canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-            canvas.paste(crop, ((side - crop.width) // 2, (side - crop.height) // 2))
-            crop = canvas
-        out.append(crop)
-    return out
-
-
-# ==================================================================== 패킹
-def next_pot(v):
-    p = 1
-    while p < v:
-        p *= 2
-    return p
-
-
-def pack_shelf(sizes, max_width, spacing=2, border=BORDER):
-    """선반 방식 패킹. 반환: 좌표 목록 (입력 순서 유지)."""
-    if not sizes:
-        return []
-    order = sorted(range(len(sizes)), key=lambda i: -sizes[i][1])
-    positions = [None] * len(sizes)
-    x = y = border
-    shelf_h = 0
-    for i in order:
-        w, h = sizes[i]
-        if x > border and x + w + border > max_width:
-            x = border
-            y += shelf_h + spacing
-            shelf_h = 0
-        positions[i] = (x, y)
-        x += w + spacing
-        shelf_h = max(shelf_h, h)
-    return positions
-
-
-def grid_positions(sizes, max_width, spacing=2, border=BORDER):
-    """모든 칸을 같은 크기로 두고 목록 순서대로 배치 (셀 안에서 가운데 정렬)."""
-    if not sizes:
-        return []
-    cw = max(w for w, _ in sizes)
-    chh = max(h for _, h in sizes)
-    cols = max(1, (max_width - 2 * border + spacing) // (cw + spacing))
-    out = []
-    for i, (w, h) in enumerate(sizes):
-        r, c = divmod(i, cols)
-        x = border + c * (cw + spacing) + (cw - w) // 2
-        y = border + r * (chh + spacing) + (chh - h) // 2
-        out.append((x, y))
-    return out
-
-
-def auto_width(sizes, spacing=2, border=BORDER):
-    """총 면적 기준으로 적당한 시트 너비를 추정."""
-    if not sizes:
-        return 256
-    area = sum((w + spacing) * (h + spacing) for w, h in sizes)
-    widest = max(w for w, _ in sizes) + border * 2
-    return max(widest, next_pot(int((area * 1.15) ** 0.5)))
-
-
-def find_overlaps(rects):
-    """겹치는 항목들의 인덱스 집합. rects 는 [(x, y, w, h)].
-
-    모든 쌍을 비교하면 항목이 수천 개일 때 배치를 바꿀 때마다 눈에 띄게
-    멈춘다. 시트를 격자로 나눠 같은 칸에 걸친 것끼리만 비교한다.
-    """
-    bad = set()
-    n = len(rects)
-    if n < 2:
-        return bad
-
-    # 칸은 항목 크기의 중간값. 너무 잘게 나누면 등록 비용이 더 커진다.
-    cell = max(8, int(np.median([max(w, h) for _, _, w, h in rects])))
-    buckets = {}
-    for i, (x, y, w, h) in enumerate(rects):
-        for cy in range(y // cell, (y + max(1, h) - 1) // cell + 1):
-            for cx in range(x // cell, (x + max(1, w) - 1) // cell + 1):
-                buckets.setdefault((cx, cy), []).append(i)
-
-    for ids in buckets.values():
-        for a in range(len(ids) - 1):
-            i = ids[a]
-            ax, ay, aw, ah = rects[i]
-            for b in range(a + 1, len(ids)):
-                j = ids[b]
-                if i in bad and j in bad:
-                    continue                 # 둘 다 이미 겹침으로 찍혔다
-                bx, by, bw, bh = rects[j]
-                if not (ax + aw <= bx or bx + bw <= ax or ay + ah <= by or by + bh <= ay):
-                    bad.add(i)
-                    bad.add(j)
-    return bad
-
-
-# ============================================================ 아틀라스 파일
-# 기존 시트와 함께 배포되는 좌표 파일을 읽어 원본 스프라이트를 정확히 되돌린다.
-# 트리밍(여백 잘라내기)과 회전 패킹은 픽셀만 봐서는 복원할 수 없기 때문에
-# 자동 감지의 한계를 이 정보로 메운다.
-#
-# 프레임 하나는 아래 형태의 dict 로 통일한다.
-#   name : 스프라이트 이름
-#   x, y : 시트에서의 위치
-#   rw, rh : 시트에서 실제로 차지하는 영역 크기 (회전된 프레임은 이미 뒤바뀐 값)
-#   rot  : 시트에 90도 돌려서 저장되어 있는가
-#   ox, oy : 원본 캔버스 안에서 잘린 조각이 놓이는 위치
-#   sw, sh : 트리밍 전 원본 크기
-
-ATLAS_EXTS = (".json", ".xml", ".plist", ".atlas")
-
-
-def _num(v, default=0):
-    try:
-        return int(round(float(v)))
-    except (TypeError, ValueError):
-        return default
-
-
-def _parse_braced(text):
-    """'{{0,0},{32,48}}' 또는 '{12,-4}' 형태의 문자열에서 숫자만 뽑는다."""
-    return [_num(n) for n in re.findall(r"-?\d+(?:\.\d+)?", text or "")]
-
-
-def _frame(name, x, y, w, h, rot=False, ox=0, oy=0, sw=None, sh=None):
-    """w, h 는 회전을 풀었을 때의 크기. 시트에서 차지하는 영역은 회전 여부로 결정."""
-    rw, rh = (h, w) if rot else (w, h)
-    return {"name": name, "x": x, "y": y, "rw": rw, "rh": rh, "rot": bool(rot),
-            "ox": ox, "oy": oy, "sw": sw if sw else w, "sh": sh if sh else h}
-
-
-def parse_texturepacker_json(data):
-    """TexturePacker / Phaser / PixiJS JSON (hash·array 양쪽)."""
-    raw = data.get("frames")
-    items = []
-    if isinstance(raw, dict):
-        items = [(k, v) for k, v in raw.items()]
-    elif isinstance(raw, list):
-        items = [(f.get("filename", f"frame_{i}"), f) for i, f in enumerate(raw)]
-    out = []
-    for name, f in items:
-        fr = f.get("frame") or {}
-        w, h = _num(fr.get("w")), _num(fr.get("h"))
-        sss = f.get("spriteSourceSize") or {}
-        ss = f.get("sourceSize") or {}
-        out.append(_frame(os.path.splitext(str(name))[0],
-                          _num(fr.get("x")), _num(fr.get("y")), w, h,
-                          bool(f.get("rotated")),
-                          _num(sss.get("x")), _num(sss.get("y")),
-                          _num(ss.get("w"), w), _num(ss.get("h"), h)))
-    return out
-
-
-def parse_own_json(data):
-    """이 프로그램이 저장한 단순 형식."""
-    out = []
-    for i, f in enumerate(data.get("frames") or []):
-        w, h = _num(f.get("w")), _num(f.get("h"))
-        out.append(_frame(str(f.get("name", f"frame_{i}")),
-                          _num(f.get("x")), _num(f.get("y")), w, h))
-    return out
-
-
-def parse_sparrow_xml(root):
-    """Sparrow / Starling XML (<SubTexture …>)."""
-    out = []
-    for i, st in enumerate(root.iter("SubTexture")):
-        a = st.attrib
-        w, h = _num(a.get("width")), _num(a.get("height"))
-        fw = _num(a.get("frameWidth"), w) or w
-        fh = _num(a.get("frameHeight"), h) or h
-        rot = str(a.get("rotated", "")).lower() in ("true", "1")
-        out.append(_frame(a.get("name", f"frame_{i}"),
-                          _num(a.get("x")), _num(a.get("y")), w, h, rot,
-                          -_num(a.get("frameX")), -_num(a.get("frameY")), fw, fh))
-    return out
-
-
-def parse_cocos_plist(data):
-    """Cocos2d plist (v1~v3). 오프셋은 중심 기준이라 좌상단 기준으로 바꾼다."""
-    out = []
-    for name, f in (data.get("frames") or {}).items():
-        if "textureRect" in f or "spriteSize" in f:            # v3
-            rect = _parse_braced(f.get("textureRect", ""))
-            off = _parse_braced(f.get("spriteOffset", "{0,0}"))
-            src = _parse_braced(f.get("spriteSourceSize", ""))
-            rot = bool(f.get("textureRotated"))
-        else:                                                   # v1 / v2
-            rect = _parse_braced(f.get("frame", ""))
-            off = _parse_braced(f.get("offset", "{0,0}"))
-            src = _parse_braced(f.get("sourceSize", ""))
-            rot = bool(f.get("rotated"))
-        if len(rect) < 4:
-            continue
-        x, y, w, h = rect[0], rect[1], rect[2], rect[3]
-        offx, offy = (off + [0, 0])[:2]
-        sw, sh = (src + [w, h])[:2] if len(src) >= 2 else (w, h)
-        ox = (sw - w) // 2 + offx
-        oy = (sh - h) // 2 - offy
-        out.append(_frame(os.path.splitext(str(name))[0], x, y, w, h, rot,
-                          ox, oy, sw, sh))
-    return out
-
-
-def parse_libgdx_atlas(text):
-    """libGDX .atlas 텍스트 형식."""
-    out, cur = [], None
-
-    def flush():
-        if cur and "xy" in cur and "size" in cur:
-            x, y = cur["xy"]
-            w, h = cur["size"]
-            ow, oh = cur.get("orig", (w, h))
-            offx, offy = cur.get("offset", (0, 0))
-            rot = cur.get("rotate", False)
-            # libGDX 의 offset 은 좌하단 기준이라 위쪽 기준으로 바꾼다
-            out.append(_frame(cur["name"], x, y, w, h, rot,
-                              offx, max(0, oh - h - offy), ow, oh))
-
-    for line in text.splitlines():
-        if not line.strip():
-            continue
-        if not line.startswith(" ") and ":" not in line:
-            flush()
-            cur = {"name": line.strip()}
-            continue
-        if cur is None:
-            continue
-        key, _, val = line.partition(":")
-        key, val = key.strip(), val.strip()
-        nums = [_num(n) for n in re.findall(r"-?\d+", val)]
-        if key == "xy" and len(nums) >= 2:
-            cur["xy"] = (nums[0], nums[1])
-        elif key == "size" and len(nums) >= 2:
-            cur["size"] = (nums[0], nums[1])
-        elif key == "orig" and len(nums) >= 2:
-            cur["orig"] = (nums[0], nums[1])
-        elif key == "offset" and len(nums) >= 2:
-            cur["offset"] = (nums[0], nums[1])
-        elif key == "rotate":
-            cur["rotate"] = val.lower() == "true"
-        elif key == "bounds" and len(nums) >= 4:       # 최신 형식
-            cur["xy"], cur["size"] = (nums[0], nums[1]), (nums[2], nums[3])
-        elif key == "offsets" and len(nums) >= 4:
-            cur["offset"], cur["orig"] = (nums[0], nums[1]), (nums[2], nums[3])
-    flush()
-    return out
-
-
-def parse_atlas_file(path, sheet_size=None):
-    """좌표 파일을 읽어 (형식 이름, 프레임 목록) 을 돌려준다."""
-    ext = os.path.splitext(path)[1].lower()
-    if ext == ".json":
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        raw = data.get("frames")
-        first = None
-        if isinstance(raw, list) and raw:
-            first = raw[0]
-        elif isinstance(raw, dict) and raw:
-            first = next(iter(raw.values()))
-        if isinstance(first, dict) and "frame" in first:
-            frames, kind = parse_texturepacker_json(data), "TexturePacker JSON"
-        else:
-            frames, kind = parse_own_json(data), "Sprite Studio JSON"
-    elif ext == ".xml":
-        import xml.etree.ElementTree as ET
-        frames = parse_sparrow_xml(ET.parse(path).getroot())
-        kind = "Sparrow/Starling XML"
-    elif ext == ".plist":
-        import plistlib
-        with open(path, "rb") as f:
-            frames = parse_cocos_plist(plistlib.load(f))
-        kind = "Cocos2d plist"
-    elif ext == ".atlas":
-        with open(path, "r", encoding="utf-8") as f:
-            frames = parse_libgdx_atlas(f.read())
-        kind = "libGDX atlas"
-    else:
-        raise ValueError(t("지원하지 않는 형식입니다: {a0}", a0=ext))
-
-    if not frames:
-        raise ValueError(t("프레임 정보를 찾지 못했습니다."))
-
-    # 회전 표기 관행이 파일마다 달라, 시트 밖으로 나가면 가로세로를 바꿔 본다
-    if sheet_size:
-        W, H = sheet_size
-        for f in frames:
-            if f["x"] + f["rw"] > W or f["y"] + f["rh"] > H:
-                if f["x"] + f["rh"] <= W and f["y"] + f["rw"] <= H:
-                    f["rw"], f["rh"] = f["rh"], f["rw"]
-    return kind, frames
-
-
-def find_sibling_atlas(image_path):
-    """시트와 같은 이름의 좌표 파일이 옆에 있으면 경로를 돌려준다."""
-    base = os.path.splitext(image_path)[0]
-    for ext in ATLAS_EXTS:
-        cand = base + ext
-        if os.path.exists(cand):
-            return cand
-    return None
-
-
-def extract_atlas_frame(img, f, restore_trim=True, flip_rot=False):
-    """프레임 하나를 원래 모습으로 되돌려 잘라낸다."""
-    x, y = max(0, f["x"]), max(0, f["y"])
-    x1 = min(img.width, x + f["rw"])
-    y1 = min(img.height, y + f["rh"])
-    if x1 <= x or y1 <= y:
-        return None
-    region = img.crop((x, y, x1, y1))
-
-    if f["rot"]:
-        # 시트에는 시계방향 90도로 눕혀 저장되므로 반시계로 되돌린다
-        region = region.transpose(Image.ROTATE_270 if flip_rot else Image.ROTATE_90)
-
-    if restore_trim and (f["sw"] > region.width or f["sh"] > region.height):
-        canvas = Image.new("RGBA", (max(f["sw"], region.width),
-                                    max(f["sh"], region.height)), (0, 0, 0, 0))
-        canvas.alpha_composite(region, (max(0, f["ox"]), max(0, f["oy"])))
-        region = canvas
-    return region
 
 
 # ================================================================== 유틸리티
@@ -947,12 +108,6 @@ def parse_drop_paths(raw):
     if buf:
         paths.append(buf)
     return [p for p in paths if p]
-
-
-def safe_name(text, fallback="sprite"):
-    """파일/폴더 이름으로 쓸 수 있게 정리."""
-    cleaned = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", text).strip(" .")
-    return cleaned[:40] or fallback
 
 
 def make_checker(dw, dh, cell=8, phx=0, phy=0):
@@ -1197,17 +352,17 @@ class SpriteStudio:
 
         lang_row = ttk.Frame(lib)
         lang_row.pack(fill="x", pady=(0, 4))
-        ttk.Label(lang_row, text=t("언어"), font=(UI_FONT, 9)).pack(side="left")
+        ttk.Label(lang_row, text=t("언어"), font=(i18n.UI_FONT, 9)).pack(side="left")
         self.lang_box = ttk.Combobox(lang_row, state="readonly", width=10,
                                      values=[LANG_NAMES[c] for c in LANG_CODES])
-        self.lang_box.set(LANG_NAMES[LANG])
+        self.lang_box.set(LANG_NAMES[i18n.LANG])
         self.lang_box.pack(side="right")
         self.lang_box.bind("<<ComboboxSelected>>", self.on_lang_change)
 
-        self.lib_title = ttk.Label(lib, text=t("등록된 시트 (0)"), font=(UI_FONT, 10, "bold"))
+        self.lib_title = ttk.Label(lib, text=t("등록된 시트 (0)"), font=(i18n.UI_FONT, 10, "bold"))
         self.lib_title.pack(anchor="w")
         ttk.Label(lib, text=t("썸네일을 2번 탭으로 끌어다 놓으면 추가됩니다"),
-                  foreground="#666", font=(UI_FONT, 8), wraplength=195,
+                  foreground="#666", font=(i18n.UI_FONT, 8), wraplength=195,
                   justify="left").pack(anchor="w", pady=(0, 4))
 
         holder = tk.Frame(lib, bg=BG_DARK, highlightthickness=1, highlightbackground="#555")
@@ -1249,7 +404,7 @@ class SpriteStudio:
         self.nb.add(tab2, text=t("  2. 새 시트 만들기  "))
 
         self.title_lbl = ttk.Label(tab1, text=t("시트를 등록하세요"),
-                                   font=(UI_FONT, 11, "bold"), anchor="w")
+                                   font=(i18n.UI_FONT, 11, "bold"), anchor="w")
         self.title_lbl.pack(fill="x")
         self.canvas = tk.Canvas(tab1, bg=BG_DARK, highlightthickness=1,
                                 highlightbackground="#666")
@@ -1329,10 +484,10 @@ class SpriteStudio:
         head = tk.Frame(outer, bg=SEC_BG, cursor="hand2")
         head.pack(fill="x")
         mark = tk.Label(head, text="▾" if opened else "▸", bg=SEC_BG, fg=SEC_MARK,
-                        font=(UI_FONT, 9), width=2)
+                        font=(i18n.UI_FONT, 9), width=2)
         mark.pack(side="left")
         lab = tk.Label(head, text=title, bg=SEC_BG, fg=SEC_FG, anchor="w",
-                       font=(UI_FONT, 10, "bold"))
+                       font=(i18n.UI_FONT, 10, "bold"))
         lab.pack(side="left", fill="x", expand=True, pady=4)
         if action:
             ttk.Button(head, text=action[0], width=7,
@@ -1364,7 +519,7 @@ class SpriteStudio:
     def _build_split_options(self, parent):
         abox = self._section(parent, "atlas", t("좌표 파일 (아틀라스)"))
         self.atlas_lbl = ttk.Label(abox, text=t("없음 - 픽셀로 자동 감지 중"),
-                                   foreground="#888", font=(UI_FONT, 9),
+                                   foreground="#888", font=(i18n.UI_FONT, 9),
                                    wraplength=270, justify="left")
         self.atlas_lbl.pack(anchor="w")
         arow = ttk.Frame(abox)
@@ -1386,7 +541,7 @@ class SpriteStudio:
         box = self._section(parent, "split", t("추출 옵션"),
                             action=(t("추출"), self.run_split))
         ttk.Label(box, text=t("선택한 시트에만 적용됩니다"), foreground="#888",
-                  font=(UI_FONT, 8)).pack(anchor="w", pady=(0, 3))
+                  font=(i18n.UI_FONT, 8)).pack(anchor="w", pady=(0, 3))
         self.s_merge = self._slider(box, t("조각 합치기(px)"), 0, 0, 20)
         self.s_minsize = self._slider(box, t("최소 가로·세로(px)"), 3, 1, 40)
         self.s_minarea = self._slider(box, t("최소 픽셀 수"), 8, 1, 200)
@@ -1447,7 +602,7 @@ class SpriteStudio:
         ttk.Label(r1, text=t("최대 너비"), width=10).pack(side="left")
         ttk.Entry(r1, textvariable=self.v_width, width=8).pack(side="left")
         ttk.Label(r1, text=t("비우면 자동"), foreground="#888",
-                  font=(UI_FONT, 8)).pack(side="left", padx=4)
+                  font=(i18n.UI_FONT, 8)).pack(side="left", padx=4)
 
         r2 = ttk.Frame(box)
         r2.pack(fill="x", pady=1)
@@ -1460,7 +615,7 @@ class SpriteStudio:
         ttk.Label(r3, text=t("스냅(px)"), width=10).pack(side="left")
         ttk.Spinbox(r3, from_=1, to=64, textvariable=self.v_snap, width=6).pack(side="left")
         ttk.Label(r3, text=t("드래그 이동 단위"), foreground="#888",
-                  font=(UI_FONT, 8)).pack(side="left", padx=4)
+                  font=(i18n.UI_FONT, 8)).pack(side="left", padx=4)
 
         ttk.Checkbutton(box, text=t("2의 거듭제곱 크기로 맞춤"), variable=self.v_pot,
                         command=self.recompute_size).pack(anchor="w", pady=(4, 0))
@@ -1472,7 +627,7 @@ class SpriteStudio:
 
         box2 = self._section(parent, "pool", t("새 시트 구성"))
         self.pool_lbl2 = ttk.Label(box2, text=t("스프라이트 0개"),
-                                   font=(UI_FONT, 9, "bold"), foreground="#0a6")
+                                   font=(i18n.UI_FONT, 9, "bold"), foreground="#0a6")
         self.pool_lbl2.pack(anchor="w", pady=(0, 4))
         ttk.Button(box2, text=t("이미지 추가…"), command=self.add_pool_files).pack(fill="x")
         ttk.Button(box2, text=t("선택 제거 (Del)"),
@@ -1483,7 +638,7 @@ class SpriteStudio:
         ttk.Checkbutton(box3, text=t("좌표 JSON 파일"), variable=self.v_atlas,
                         command=self.update_export_ui).pack(anchor="w")
         ttk.Label(box3, text=t("엔진에서 프레임 위치를 읽을 때 필요합니다"),
-                  foreground="#888", font=(UI_FONT, 8), wraplength=270,
+                  foreground="#888", font=(i18n.UI_FONT, 8), wraplength=270,
                   justify="left").pack(anchor="w")
 
     def _build_export_area(self, parent):
@@ -1500,11 +655,11 @@ class SpriteStudio:
         ttk.Button(frow, text=t("폴더 열기"), command=self.open_outdir).pack(side="left", padx=4)
 
         self.export_hint = tk.Label(area, text="", anchor="w", justify="left",
-                                    fg="#555", font=(UI_FONT, 9), wraplength=290)
+                                    fg="#555", font=(i18n.UI_FONT, 9), wraplength=290)
         self.export_hint.pack(fill="x", pady=(8, 3))
 
         self.big_btn = tk.Button(area, text=t("내보내기"), command=self.do_export,
-                                 font=(UI_FONT, 14, "bold"),
+                                 font=(i18n.UI_FONT, 14, "bold"),
                                  bg="#0b7285", fg="white",
                                  activebackground="#095c6b", activeforeground="white",
                                  relief="flat", borderwidth=0, cursor="hand2",
@@ -1575,7 +730,7 @@ class SpriteStudio:
         head = ttk.Frame(tab)
         head.pack(fill="x")
         self.layout_title = ttk.Label(head, text=t("추가된 스프라이트가 없습니다"),
-                                      font=(UI_FONT, 11, "bold"), anchor="w")
+                                      font=(i18n.UI_FONT, 11, "bold"), anchor="w")
         self.layout_title.pack(side="left")
 
         self.lcanvas = tk.Canvas(tab, bg=BG_DARK, highlightthickness=1,
@@ -1701,7 +856,7 @@ class SpriteStudio:
             for s in self.sheets if s.path
         ]
         self.settings["active"] = self.active
-        self.settings["lang"] = LANG
+        self.settings["lang"] = i18n.LANG
         self.settings["outdir"] = self.v_outdir.get().strip()
         self.settings["prefs"] = {
             "spacing": self.v_spacing.get(), "snap": self.v_snap.get(),
@@ -1765,8 +920,8 @@ class SpriteStudio:
 
     def on_lang_change(self, _event=None):
         choice = self.lang_box.get()
-        code = next((c for c in LANG_CODES if LANG_NAMES[c] == choice), LANG)
-        if code == LANG or not self.relaunch:
+        code = next((c for c in LANG_CODES if LANG_NAMES[c] == choice), i18n.LANG)
+        if code == i18n.LANG or not self.relaunch:
             return
         set_lang(code)
         self.settings["lang"] = code
@@ -1852,7 +1007,7 @@ class SpriteStudio:
 
         if not self.sheets:
             tk.Label(self.lib_inner, text=t("\n시트를 여기로\n끌어다 놓으세요\n"),
-                     bg=BG_DARK, fg=FG_DIM, font=(UI_FONT, 9)).pack(pady=20)
+                     bg=BG_DARK, fg=FG_DIM, font=(i18n.UI_FONT, 9)).pack(pady=20)
             return
 
         for i, s in enumerate(self.sheets):
@@ -1863,7 +1018,7 @@ class SpriteStudio:
             info = tk.Frame(row, bg=BG_ROW)
             info.pack(side="left", fill="x", expand=True, padx=6)
             name = tk.Label(info, text=s.name[:16], bg=BG_ROW, fg=FG_TEXT,
-                            font=(UI_FONT, 9, "bold"), anchor="w")
+                            font=(i18n.UI_FONT, 9, "bold"), anchor="w")
             name.pack(fill="x")
             meta = tk.Label(info, text=f"{s.img.width}×{s.img.height}", bg=BG_ROW,
                             fg=FG_DIM, font=("Consolas", 8), anchor="w")
@@ -1983,7 +1138,7 @@ class SpriteStudio:
             except tk.TclError:
                 pass
             tk.Label(self._ghost, bg=BG_SEL, fg="white", padx=8, pady=4,
-                     font=(UI_FONT, 9, "bold"),
+                     font=(i18n.UI_FONT, 9, "bold"),
                      text=t("{a0}  ({a1}개) → 2번 탭에 놓기", a0=s.name, a1=len(s.boxes))).pack()
 
         self._ghost.geometry(f"+{event.x_root + 16}+{event.y_root + 16}")
@@ -2267,7 +1422,7 @@ class SpriteStudio:
             self.canvas.create_text(max(self.canvas.winfo_width() // 2, 10),
                                     max(self.canvas.winfo_height() // 2, 10),
                                     text=t("여기에 시트 이미지를 끌어다 놓으세요"),
-                                    fill="#bbb", font=(UI_FONT, 13))
+                                    fill="#bbb", font=(i18n.UI_FONT, 13))
             return
 
         cw = max(self.canvas.winfo_width(), 1)
@@ -2634,7 +1789,7 @@ class SpriteStudio:
         if not self.pool:
             self.layout_title.config(text=t("추가된 스프라이트가 없습니다"))
             self.lcanvas.create_text(cw // 2, ch // 2, fill="#bbb",
-                                     font=(UI_FONT, 12),
+                                     font=(i18n.UI_FONT, 12),
                                      text=t("왼쪽 시트 썸네일을 이 화면으로 끌어다 놓거나\n1번 탭에서 '추가'를 누르세요\n(낱장 이미지 파일도 여기로 놓을 수 있습니다)"),
                                      justify="center")
             self.lstatus.config(text=t("추가된 스프라이트가 없습니다"))

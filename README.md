@@ -41,6 +41,24 @@ python build.py
 
 `dist/SpriteStudio.exe` 하나만 배포하면 됩니다. 폴더 방식이 필요하면 `python build.py --onedir`을 쓰세요. 실행 속도가 훨씬 빠릅니다.
 
+## 코드 구조
+
+```
+spritecore/        UI 와 무관한 핵심 로직 (tkinter 의존 없음)
+  detect.py          픽셀에서 스프라이트 찾기 · 잘라내기
+  packing.py         새 시트 배치 계산
+  atlas.py           좌표 파일 읽기 (TexturePacker / Sparrow / Cocos2d / libGDX)
+  i18n.py            번역 표
+  constants.py       공통 상수
+  util.py            이름 정리 등
+sprite_studio.py   tkinter 데스크톱 UI
+extract_sprites.py 명령줄 추출 도구
+```
+
+`spritecore` 는 numpy 와 Pillow 만 쓰므로 브라우저(Pyodide)에서도 그대로
+돌아간다. 파일 시스템을 건드리는 함수에는 내용만 받는 짝이 있다 —
+`parse_atlas_file(path)` ↔ `parse_atlas_data(data, ext)`.
+
 ## 사용법
 
 1. 스프라이트 추출 탭 — 시트 이미지를 창에 끌어다 놓으면 자동으로 분석됩니다. 감지 결과가 맞지 않으면 오른쪽 슬라이더를 조정하세요. 파츠가 쪼개지면 "조각 합치기"를 올리고, 자잘한 조각이 잡히면 "최소 가로·세로"를 올립니다. 배경이 투명이 아니면 "스포이트"로 배경색을 지정하세요.
