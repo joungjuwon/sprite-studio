@@ -352,3 +352,5 @@ main {
 .note.inline { margin: 0; }
 label.nw { width: 74px; flex: none; font-size: 12px; }
 #opts2 input[type=text], #opts2 input[type=number] { width: 68px; }
+.sheet-row[draggable] { user-select: none; }
+.tab.drop-on { background: var(--accent); color: #10242a; }

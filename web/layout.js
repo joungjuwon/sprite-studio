@@ -188,6 +188,19 @@ async function poolAdd(kind) {
   } catch (err) { fail(err); }
 }
 
+// 왼쪽 썸네일을 끌어다 놓았을 때 — 그 시트의 스프라이트를 담는다.
+// (썸네일 그림 자체가 아니라)
+async function poolAddSheet(index) {
+  try {
+    const o = opts2();
+    const res = JSON.parse(bridge.pool_add(index, null, false, o.spacing, o.width, o.pot));
+    view2.fitted = false;
+    await syncPool(res, true);
+    log(s('자동 배치: {a0}개', res.added) + ' — ' + s('스프라이트 {a0}개', P.items.length));
+    switchTab(2);
+  } catch (err) { fail(err); }
+}
+
 async function poolAddImages(files) {
   if (!files.length) return;
   const o = opts2();
@@ -394,7 +407,28 @@ function wireLayout() {
   }));
   stage2.addEventListener('drop', (e) => {
     e.stopPropagation();
+    const idx = e.dataTransfer.getData(SHEET_DRAG);
+    if (idx !== '') { poolAddSheet(+idx); return; }
     poolAddImages(Array.from(e.dataTransfer.files).filter((f) => /^image\//.test(f.type)));
+  });
+
+  // 1번 탭을 보고 있어도 탭 단추에 떨어뜨리면 담긴다 (데스크톱과 같은 동작)
+  const tabBtn = $('tab2');
+  ['dragenter', 'dragover'].forEach((ev) => tabBtn.addEventListener(ev, (e) => {
+    if (!e.dataTransfer.types.includes(SHEET_DRAG)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    tabBtn.classList.add('drop-on');
+  }));
+  ['dragleave', 'drop'].forEach((ev) => tabBtn.addEventListener(ev, () => {
+    tabBtn.classList.remove('drop-on');
+  }));
+  tabBtn.addEventListener('drop', (e) => {
+    const idx = e.dataTransfer.getData(SHEET_DRAG);
+    if (idx === '') return;
+    e.preventDefault();
+    e.stopPropagation();
+    poolAddSheet(+idx);
   });
 
   window.addEventListener('keydown', (e) => {
