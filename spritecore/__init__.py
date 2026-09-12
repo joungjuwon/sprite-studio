@@ -41,7 +41,7 @@ from .atlas import (
     parse_sparrow_xml,
     parse_texturepacker_json,
 )
-from .util import safe_name
+from .util import make_checker, safe_name
 
 __all__ = [
     "ATLAS_EXTS", "BORDER", "IMAGE_EXTS",
@@ -52,5 +52,5 @@ __all__ = [
     "extract_atlas_frame", "find_sibling_atlas", "parse_atlas_data",
     "parse_atlas_file", "parse_cocos_plist", "parse_libgdx_atlas",
     "parse_own_json", "parse_sparrow_xml", "parse_texturepacker_json",
-    "safe_name",
+    "make_checker", "safe_name",
 ]

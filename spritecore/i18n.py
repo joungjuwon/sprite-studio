@@ -219,6 +219,7 @@ TRANSLATIONS = {
         "해제": "Unlink",
         "회전 {a0}": "rotated {a0}",
         "회전 방향 반대로 (그림이 뒤집혀 나올 때)": "Flip rotation (if sprites come out sideways)",
+        "내보낼 스프라이트가 없습니다.": "No sprites to export.",
         "언어": "Language",
     },
     "ja": {
@@ -414,6 +415,7 @@ TRANSLATIONS = {
         "해제": "解除",
         "회전 {a0}": "回転 {a0}",
         "회전 방향 반대로 (그림이 뒤집혀 나올 때)": "回転方向を反転 (絵が横向きになる場合)",
+        "내보낼 스프라이트가 없습니다.": "書き出すスプライトがありません。",
         "언어": "言語",
     },
 }

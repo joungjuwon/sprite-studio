@@ -46,6 +46,7 @@ from spritecore import (
     next_pot,
     pack_shelf,
     parse_atlas_file,
+    make_checker,
     safe_name,
     set_lang,
     t,
@@ -108,16 +109,6 @@ def parse_drop_paths(raw):
     if buf:
         paths.append(buf)
     return [p for p in paths if p]
-
-
-def make_checker(dw, dh, cell=8, phx=0, phy=0):
-    """투명 영역 표시용 체커보드. phx/phy 는 화면 이동에 맞춘 무늬 위상."""
-    yy, xx = np.ogrid[0:dh, 0:dw]
-    checker = (((xx + phx) // cell + (yy + phy) // cell) % 2).astype(np.uint8)
-    base = np.empty((dh, dw, 4), dtype=np.uint8)
-    base[:, :, :3] = np.where(checker[:, :, None] == 0, 82, 62)
-    base[:, :, 3] = 255
-    return Image.fromarray(base, "RGBA")
 
 
 class ViewState:

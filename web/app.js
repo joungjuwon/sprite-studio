@@ -1,7 +1,8 @@
 /* Sprite Studio — 웹 앱.
  *
  * 감지·패킹·아틀라스 파싱은 데스크톱과 똑같은 spritecore 파이썬 코드를
- * Pyodide 위에서 돌린다. 이 파일은 화면과 입력만 맡는다.
+ * Pyodide 위에서 돌린다. 화면 구성과 문구도 데스크톱에 맞췄고, UI 문자열은
+ * 따로 적지 않고 파이썬의 같은 번역표에서 받아 쓴다.
  */
 'use strict';
 
@@ -12,30 +13,29 @@ const CORE_FILES = [
 
 const PYODIDE = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
 
+// 데스크톱과 같은 슬라이더 구성 (id, 기본값)
+const SLIDERS = ['merge', 'min_size', 'min_area', 'tol', 'pad'];
+
 const $ = (id) => document.getElementById(id);
 
-let py = null;            // Pyodide 인스턴스
-let bridge = null;        // bridge 모듈
-let sheet = null;         // { w, h, bitmap }
-let boxes = [];           // [{x, y, w, h}]
+let py = null;
+let bridge = null;
+let S = {};               // 파이썬이 넘겨준 현재 상태 { sheets, active, sheet }
+let str = {};             // 번역표
+let bitmap = null;        // 지금 그리는 시트 그림
 let selected = new Set();
-let strings = {};
 
-/* ------------------------------------------------------------------ 화면 상태 */
 const view = { scale: 1, ox: 0, oy: 0 };
 
-function fitView() {
-  const c = $('view');
-  if (!sheet || !c.width || !c.height) return;
-  const s = Math.min(c.width / sheet.w, c.height / sheet.h, 4);
-  view.scale = Math.max(0.02, s * 0.94);
-  view.ox = (c.width - sheet.w * view.scale) / 2;
-  view.oy = (c.height - sheet.h * view.scale) / 2;
+/* ------------------------------------------------------------------ 문자열 */
+// 데스크톱 t() 와 같은 {a0} 자리표시자를 채운다
+function s(key, ...args) {
+  let out = str[key] !== undefined ? str[key] : key;
+  args.forEach((v, i) => { out = out.split('{a' + i + '}').join(v); });
+  return out;
 }
 
-const toImg = (x, y) => [(x - view.ox) / view.scale, (y - view.oy) / view.scale];
-
-/* ------------------------------------------------------------------ 알림 */
+/* ------------------------------------------------------------------ 알림/로그 */
 let toastTimer = 0;
 function toast(msg, isErr) {
   const el = $('toast');
@@ -44,6 +44,20 @@ function toast(msg, isErr) {
   el.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.hidden = true; }, isErr ? 5200 : 2400);
+}
+
+function log(msg) {
+  const el = $('log');
+  const time = new Date().toTimeString().slice(0, 8);
+  el.textContent += (el.textContent ? '\n' : '') + '[' + time + '] ' + msg;
+  el.scrollTop = el.scrollHeight;
+}
+
+function fail(err) {
+  const msg = String((err && err.message) || err).split('\n').filter(Boolean).pop();
+  toast(msg, true);
+  log(msg);
+  console.error(err);
 }
 
 /* ------------------------------------------------------------------ 부팅 */
@@ -72,10 +86,13 @@ async function boot() {
     bridge = py.pyimport('bridge');
 
     setLang(localStorage.getItem('lang') || 'ko');
+    S = JSON.parse(bridge.clear_sheets());
 
     $('boot').hidden = true;
-    $('app').hidden = false;
+    $('main').hidden = false;
+    render();
     resize();
+    log('Sprite Studio web — ' + py.runPython('import sys; sys.version.split()[0]'));
   } catch (err) {
     msg.textContent = '불러오지 못했습니다 — ' + err.message;
     $('boot').querySelector('.spin').style.display = 'none';
@@ -84,59 +101,34 @@ async function boot() {
 }
 
 /* ------------------------------------------------------------------ 언어 */
-const UI_TEXT = {
-  ko: {
-    desktop: '데스크톱 버전', dropTitle: '시트 이미지를 끌어다 놓으세요',
-    dropSub: 'PNG · JPG · BMP · GIF · WEBP · TGA — 이미지는 이 브라우저 밖으로 나가지 않습니다',
-    pickFile: '파일 선택', opts: '추출 옵션', bgColor: '배경색 지정', eyedrop: '스포이트',
-    tol: '배경 허용 오차', merge: '조각 합치기', minSize: '최소 가로·세로', minArea: '최소 면적',
-    exportOpts: '내보내기', pad: '여백', square: '정사각형으로 맞추기',
-    withJson: '좌표 JSON 함께 저장', selectAll: '전체 선택', selectNone: '선택 해제',
-    save: '선택한 스프라이트 저장', other: '다른 시트 열기',
-    hint: '휠 = 확대 · 가운데/오른쪽 드래그 = 이동 · 클릭 = 선택 · 빈 곳 더블클릭 = 화면 맞춤',
-    found: (n) => '스프라이트 ' + n + '개', sel: (n) => n + '개 선택',
-    saved: (n) => n + '개 저장했습니다', nosel: '저장할 스프라이트를 고르세요',
-  },
-  en: {
-    desktop: 'Desktop version', dropTitle: 'Drop a sheet image here',
-    dropSub: 'PNG · JPG · BMP · GIF · WEBP · TGA — images never leave your browser',
-    pickFile: 'Choose file', opts: 'Extract options', bgColor: 'Set background color',
-    eyedrop: 'Eyedropper', tol: 'Background tolerance', merge: 'Merge pieces',
-    minSize: 'Min width/height', minArea: 'Min area', exportOpts: 'Export', pad: 'Padding',
-    square: 'Make square', withJson: 'Include coordinate JSON', selectAll: 'Select all',
-    selectNone: 'Clear selection', save: 'Save selected sprites', other: 'Open another sheet',
-    hint: 'Wheel = zoom · Middle/right drag = pan · Click = select · Double-click empty = fit',
-    found: (n) => n + ' sprites', sel: (n) => n + ' selected',
-    saved: (n) => 'Saved ' + n + ' sprites', nosel: 'Select sprites to save first',
-  },
-  ja: {
-    desktop: 'デスクトップ版', dropTitle: 'シート画像をドロップしてください',
-    dropSub: 'PNG · JPG · BMP · GIF · WEBP · TGA — 画像はブラウザの外に出ません',
-    pickFile: 'ファイル選択', opts: '抽出オプション', bgColor: '背景色を指定',
-    eyedrop: 'スポイト', tol: '背景の許容誤差', merge: '断片の結合',
-    minSize: '最小の幅・高さ', minArea: '最小面積', exportOpts: '書き出し', pad: '余白',
-    square: '正方形に揃える', withJson: '座標JSONも保存', selectAll: 'すべて選択',
-    selectNone: '選択解除', save: '選んだスプライトを保存', other: '別のシートを開く',
-    hint: 'ホイール = 拡大 · 中/右ドラッグ = 移動 · クリック = 選択 · 空白をダブルクリック = 全体表示',
-    found: (n) => 'スプライト ' + n + '個', sel: (n) => n + '個 選択',
-    saved: (n) => n + '個 保存しました', nosel: '保存するスプライトを選んでください',
-  },
-};
-
 function setLang(code) {
-  strings = UI_TEXT[code] || UI_TEXT.ko;
+  str = JSON.parse(bridge.strings(code));
   localStorage.setItem('lang', code);
   $('lang').value = code;
   document.documentElement.lang = code;
-  if (bridge) bridge.translations(code);   // 파이썬 쪽 오류 메시지도 같은 언어로
-  document.querySelectorAll('[data-i18n]').forEach((el) => {
-    const v = strings[el.dataset.i18n];
-    if (typeof v === 'string') el.textContent = v;
+  document.querySelectorAll('[data-s]').forEach((el) => {
+    const key = el.dataset.s;
+    const v = str[key];
+    if (v === undefined) return;
+    // 자리표시자가 든 문구는 render() 가 값을 채워 다시 넣는다
+    if (v.indexOf('{a0}') >= 0) return;
+    el.innerHTML = v.trim().split('\n').join('<br>');
   });
-  updateHud();
 }
 
-/* ------------------------------------------------------------------ 그리기 */
+/* ------------------------------------------------------------------ 화면 */
+function fitView() {
+  const c = $('view');
+  const sh = S.sheet;
+  if (!sh || !c.width || !c.height) return;
+  const k = Math.min(c.width / sh.w, c.height / sh.h, 4);
+  view.scale = Math.max(0.02, k * 0.96);
+  view.ox = (c.width - sh.w * view.scale) / 2;
+  view.oy = (c.height - sh.h * view.scale) / 2;
+}
+
+const toImg = (x, y) => [(x - view.ox) / view.scale, (y - view.oy) / view.scale];
+
 function resize() {
   const c = $('view');
   const r = $('stage').getBoundingClientRect();
@@ -150,98 +142,232 @@ function draw() {
   const c = $('view');
   const g = c.getContext('2d');
   g.clearRect(0, 0, c.width, c.height);
-  if (!sheet) return;
+  const sh = S.sheet;
+  if (!sh || !bitmap) return;
 
-  g.imageSmoothingEnabled = view.scale < 1;   // 확대하면 픽셀을 또렷하게
-  g.drawImage(sheet.bitmap, view.ox, view.oy,
-              sheet.w * view.scale, sheet.h * view.scale);
+  g.imageSmoothingEnabled = view.scale < 1;
+  g.drawImage(bitmap, view.ox, view.oy, sh.w * view.scale, sh.h * view.scale);
 
-  g.lineWidth = 1;
-  for (let i = 0; i < boxes.length; i++) {
-    const b = boxes[i];
+  // 데스크톱과 같은 규칙: 선택은 #ffd54f 2px, 나머지는 #00e5ff 1px,
+  // 배율이 0.4 를 넘으면 왼쪽 위에 번호를 적는다.
+  g.font = '11px Consolas, monospace';
+  sh.boxes.forEach((b, i) => {
     const x = view.ox + b.x * view.scale;
     const y = view.oy + b.y * view.scale;
     const w = b.w * view.scale;
     const h = b.h * view.scale;
+    if (x + w < -4 || y + h < -4 || x > c.width + 4 || y > c.height + 4) return;
     const on = selected.has(i);
-    if (on) {
-      g.fillStyle = 'rgba(255, 213, 79, .17)';
-      g.fillRect(x, y, w, h);
-    }
     g.strokeStyle = on ? '#ffd54f' : '#00e5ff';
+    g.lineWidth = on ? 2 : 1;
     g.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.round(w), Math.round(h));
-  }
+    if (view.scale > 0.4) {
+      g.fillStyle = on ? '#ffd54f' : '#00e5ff';
+      g.fillText(String(i), x + 2, y - 3);
+    }
+  });
 
   if (band) {
-    g.strokeStyle = '#ffffff';
+    g.strokeStyle = '#ffd54f';
+    g.lineWidth = 1;
     g.setLineDash([4, 3]);
     g.strokeRect(band.x, band.y, band.w, band.h);
     g.setLineDash([]);
   }
 }
 
-function updateHud() {
-  const hud = $('hud');
-  if (!sheet) { hud.hidden = true; $('save').disabled = true; return; }
-  hud.hidden = false;
-  hud.innerHTML = '<b>' + strings.found(boxes.length) + '</b> · '
-                + strings.sel(selected.size) + ' · '
-                + Math.round(view.scale * 100) + '%';
-  $('save').disabled = selected.size === 0;
+/* ------------------------------------------------------------------ 패널 갱신 */
+function render() {
+  const sheets = S.sheets || [];
+  const sh = S.sheet;
+
+  // 왼쪽 목록
+  $('lib-title').textContent = s('등록된 시트 ({a0})', sheets.length);
+  const list = $('lib-list');
+  list.innerHTML = '';
+  if (!sheets.length) {
+    const p = document.createElement('p');
+    p.id = 'lib-empty';
+    p.innerHTML = s('\n시트를 여기로\n끌어다 놓으세요\n').trim().split('\n').join('<br>');
+    list.appendChild(p);
+  } else {
+    sheets.forEach((r) => {
+      const row = document.createElement('div');
+      row.className = 'sheet-row' + (r.index === S.active ? ' on' : '');
+      row.innerHTML =
+        '<img alt="">' +
+        '<div class="sheet-info">' +
+          '<div class="sheet-name"></div>' +
+          '<div class="sheet-meta"></div>' +
+          '<div class="sheet-count"></div>' +
+        '</div><span class="sheet-x">×</span>';
+      row.querySelector('img').src = 'data:image/png;base64,' + r.thumb;
+      row.querySelector('.sheet-name').textContent = r.name.slice(0, 16);
+      row.querySelector('.sheet-meta').textContent = r.w + '×' + r.h;
+      row.querySelector('.sheet-count').textContent = s('{a0}개 감지', r.count);
+      row.addEventListener('click', () => selectSheet(r.index));
+      row.querySelector('.sheet-x').addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeSheet(r.index);
+      });
+      list.appendChild(row);
+    });
+  }
+
+  $('drop-hint').hidden = !!sh;
+  $('remove').disabled = !sh;
+  $('clear').disabled = !sheets.length;
+
+  // 가운데 제목 · 상태
+  if (!sh) {
+    $('title').textContent = s('시트를 등록하세요');
+    $('status').textContent = s('준비됨');
+  } else {
+    $('title').textContent = sh.name + '   (' + sh.w + '×' + sh.h + ')';
+    const pct = Math.round(view.scale * 100) + '%';
+    if (selected.size) {
+      $('status').textContent = s(
+        '{a0}개 중 {a1}개 선택됨  ·  {a2}  ·  빈 곳 드래그=범위 선택, 휠=확대,'
+        + ' 가운데/오른쪽 드래그=이동, 더블클릭=화면 맞춤',
+        sh.boxes.length, selected.size, pct);
+    } else {
+      const src = (sh.atlasCount && sh.opts.use_atlas) ? s('좌표 파일 기준')
+                                                       : s('픽셀 자동 감지');
+      $('status').textContent = s(
+        '{a0}개 · {a1}  ·  {a2}  ·  드래그로 여러 개 선택 가능 (Shift=추가)',
+        sh.boxes.length, src, pct);
+    }
+  }
+
+  // 오른쪽 옵션을 지금 시트의 값으로
+  if (sh) {
+    const o = sh.opts;
+    SLIDERS.forEach((id) => {
+      $(id).value = o[id];
+      document.querySelector('[data-slider="' + id + '"] output').textContent = o[id];
+    });
+    $('use-bg').checked = o.use_bg;
+    $('square').checked = o.square;
+    $('use-atlas').checked = o.use_atlas;
+    $('restore').checked = o.restore_trim;
+    $('fliprot').checked = o.flip_rot;
+    $('prefix').value = sh.prefix;
+    const hex = rgbToHex(o.bg);
+    $('bg').value = hex;
+    $('swatch').style.background = hex;
+    if (sh.atlasCount) {
+      const extra = [];
+      if (sh.atlasRot) extra.push(s('회전 {a0}', sh.atlasRot));
+      if (sh.atlasTrim) extra.push(s('트리밍 {a0}', sh.atlasTrim));
+      $('atlas-lbl').textContent = s('{a0} · {a1}프레임', sh.atlasKind, sh.atlasCount)
+        + (extra.length ? ' (' + extra.join(', ') + ')' : '') + '\n' + sh.atlasName;
+      $('atlas-lbl').style.color = '#0a6';
+    } else {
+      $('atlas-lbl').textContent = s('없음 - 픽셀로 자동 감지 중');
+      $('atlas-lbl').style.color = '';
+    }
+  }
+  document.querySelectorAll('#opts input, #opts button').forEach((el) => {
+    if (el.id !== 'lang') el.disabled = !sh;
+  });
+  $('atlas-clear').disabled = !sh || !sh.atlasCount;
+
+  renderExport();
 }
 
-/* ------------------------------------------------------------------ 시트 열기 */
-async function openFile(file) {
-  if (!file) return;
-  try {
-    const buf = new Uint8Array(await file.arrayBuffer());
-    const info = JSON.parse(bridge.load_sheet(buf, file.name));
-    const blob = await (await fetch('data:image/png;base64,' + info.png)).blob();
-    sheet = { w: info.w, h: info.h, bitmap: await createImageBitmap(blob) };
+function renderExport() {
+  const sh = S.sheet;
+  const n = sh ? (selected.size || sh.boxes.length) : 0;
+  const ready = !!(sh && n);
 
-    $('drop').hidden = true;
-    $('view').hidden = false;
-    $('side').hidden = false;
-    $('sheet-name').textContent = info.name;
-    $('sheet-size').textContent = info.w + ' × ' + info.h;
+  $('big').disabled = !ready;
+  $('big').textContent = ready
+    ? (selected.size ? s('선택 {a0}개 내보내기', n) : s('개별 이미지로 내보내기'))
+    : s('시트를 등록하세요');
+
+  if (ready) {
+    const folder = $('subdir').checked ? sh.prefix + '/' : '';
+    $('export-hint').textContent =
+      s('PNG {a0}장 · {a1}_000 …', n, sh.prefix) + '\n' + folder + ' → .zip';
+  } else {
+    $('export-hint').textContent = s('시트를 등록하고 추출하면 내보낼 수 있습니다');
+  }
+  $('sub').disabled = !(S.sheets && S.sheets.length);
+}
+
+/* ------------------------------------------------------------------ 시트 */
+async function showActive() {
+  const sh = S.sheet;
+  if (!sh) {                       // 마지막 시트를 지웠을 때도 화면을 되돌린다
+    bitmap = null;
     selected.clear();
-    resize();
-    fitView();
-    runDetect();
-  } catch (err) {
-    toast(String(err.message || err), true);
-    console.error(err);
-  }
-}
-
-/* ------------------------------------------------------------------ 감지 */
-let detectTimer = 0;
-function scheduleDetect() {
-  clearTimeout(detectTimer);
-  detectTimer = setTimeout(runDetect, 180);
-}
-
-function runDetect() {
-  if (!sheet) return;
-  const bg = $('use-bg').checked ? hexToRgb($('bg').value) : null;
-  try {
-    boxes = JSON.parse(bridge.detect(
-      bg, +$('tol').value, +$('merge').value, +$('minarea').value, +$('minsize').value));
-    selected = new Set(boxes.map((_, i) => i));
     draw();
-    updateHud();
-  } catch (err) {
-    toast(String(err.message || err), true);
-    console.error(err);
+    render();
+    return;
   }
+  const info = JSON.parse(bridge.sheet_image(S.active));
+  const blob = await (await fetch('data:image/png;base64,' + info.png)).blob();
+  bitmap = await createImageBitmap(blob);
+  selected.clear();
+  fitView();
+  draw();
+  render();
+}
+
+async function addFiles(files) {
+  for (const f of files) {
+    if (!f) continue;
+    try {
+      const buf = new Uint8Array(await f.arrayBuffer());
+      S = JSON.parse(bridge.add_sheet(buf, f.name));
+      log(f.name + ' — ' + s('{a0}개 감지됨', S.sheet.boxes.length));
+    } catch (err) {
+      fail(err);
+    }
+  }
+  await showActive();
+}
+
+async function selectSheet(i) {
+  if (i === S.active) return;
+  S = JSON.parse(bridge.select_sheet(i));
+  await showActive();
+}
+
+async function removeSheet(i) {
+  S = JSON.parse(bridge.remove_sheet(i));
+  await showActive();
+}
+
+/* ------------------------------------------------------------------ 옵션 */
+let optTimer = 0;
+function pushOpts(delay) {
+  clearTimeout(optTimer);
+  optTimer = setTimeout(() => {
+    if (!S.sheet) return;
+    const o = {};
+    SLIDERS.forEach((id) => { o[id] = +$(id).value; });
+    o.use_bg = $('use-bg').checked;
+    o.square = $('square').checked;
+    o.use_atlas = $('use-atlas').checked;
+    o.restore_trim = $('restore').checked;
+    o.flip_rot = $('fliprot').checked;
+    o.bg = hexToRgb($('bg').value);
+    try {
+      S = JSON.parse(bridge.set_opts(S.active, JSON.stringify(o)));
+      selected.clear();
+      draw();
+      render();
+    } catch (err) { fail(err); }
+  }, delay === undefined ? 180 : delay);
 }
 
 const hexToRgb = (h) => [parseInt(h.slice(1, 3), 16),
                          parseInt(h.slice(3, 5), 16),
                          parseInt(h.slice(5, 7), 16)];
-const rgbToHex = (c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
+const rgbToHex = (c) => '#' + c.map((v) => Number(v).toString(16).padStart(2, '0')).join('');
 
-/* ------------------------------------------------------------------ 저장 */
+/* ------------------------------------------------------------------ 내보내기 */
 function download(name, base64, mime) {
   const bin = atob(base64);
   const arr = new Uint8Array(bin.length);
@@ -254,26 +380,36 @@ function download(name, base64, mime) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function save() {
-  if (!selected.size) { toast(strings.nosel, true); return; }
+function exportActive() {
+  const sh = S.sheet;
+  if (!sh) return;
+  const idx = selected.size ? Array.from(selected).sort((a, b) => a - b)
+                            : sh.boxes.map((_, i) => i);
   try {
-    const res = JSON.parse(bridge.export_zip(
-      Array.from(selected).sort((a, b) => a - b),
-      +$('pad').value, $('square').checked, $('with-json').checked));
-    download(res.name, res.data, 'application/zip');
-    toast(strings.saved(res.count));
-  } catch (err) {
-    toast(String(err.message || err), true);
-    console.error(err);
-  }
+    const r = JSON.parse(bridge.export_sheet(
+      S.active, idx, $('subdir').checked, $('with-json').checked));
+    download(r.name, r.data, 'application/zip');
+    toast(s('{a0}개 저장 완료', r.count));
+    log(r.name + ' — ' + s('{a0}개 저장 완료', r.count));
+  } catch (err) { fail(err); }
+}
+
+function exportAll() {
+  try {
+    const r = JSON.parse(bridge.export_all($('with-json').checked));
+    download(r.name, r.data, 'application/zip');
+    toast(s('{a0}개 저장 완료', r.count));
+    log(r.name + ' — ' + s('{a0}개 저장 완료', r.count));
+  } catch (err) { fail(err); }
 }
 
 /* ------------------------------------------------------------------ 입력 */
-let drag = null;      // { mode: 'pan' | 'band', ... }
+let drag = null;
 let band = null;
 let eyedropping = false;
 
 function hitBox(ix, iy) {
+  const boxes = S.sheet ? S.sheet.boxes : [];
   for (let i = boxes.length - 1; i >= 0; i--) {
     const b = boxes[i];
     if (ix >= b.x && ix < b.x + b.w && iy >= b.y && iy < b.y + b.h) return i;
@@ -290,14 +426,16 @@ function canvasPos(e) {
 
 function setEyedrop(on) {
   eyedropping = on;
-  $('eyedrop').classList.toggle('on', on);
   $('view').classList.toggle('eyedropping', on);
+  if (on) $('status').textContent = s('배경으로 쓸 픽셀을 클릭하세요');
+  else render();
 }
 
 function selectAll() {
-  selected = new Set(boxes.map((_, i) => i));
+  if (!S.sheet) return;
+  selected = new Set(S.sheet.boxes.map((_, i) => i));
   draw();
-  updateHud();
+  render();
 }
 
 function wire() {
@@ -305,37 +443,35 @@ function wire() {
 
   c.addEventListener('wheel', (e) => {
     e.preventDefault();
-    if (!sheet) return;
-    const pos = canvasPos(e);
+    if (!S.sheet) return;
+    const p = canvasPos(e);
     const next = Math.max(0.02, Math.min(24, view.scale * (e.deltaY < 0 ? 1.16 : 1 / 1.16)));
     const f = next / view.scale;
-    view.ox = pos[0] - (pos[0] - view.ox) * f;
-    view.oy = pos[1] - (pos[1] - view.oy) * f;
+    view.ox = p[0] - (p[0] - view.ox) * f;
+    view.oy = p[1] - (p[1] - view.oy) * f;
     view.scale = next;
     draw();
-    updateHud();
+    render();
   }, { passive: false });
 
   c.addEventListener('mousedown', (e) => {
-    if (!sheet) return;
-    const pos = canvasPos(e);
-    const img = toImg(pos[0], pos[1]);
+    if (!S.sheet) return;
+    const p = canvasPos(e);
+    const img = toImg(p[0], p[1]);
 
     if (eyedropping && e.button === 0) {
-      const rgb = JSON.parse(bridge.pick_color(img[0], img[1]));
-      if (rgb) {
+      try {
+        const rgb = JSON.parse(bridge.pick_color(S.active, img[0], img[1]));
         $('bg').value = rgbToHex(rgb);
         $('use-bg').checked = true;
-        $('bg').disabled = false;
-        $('eyedrop').disabled = false;
         setEyedrop(false);
-        runDetect();
-      }
+        pushOpts(0);
+      } catch (err) { fail(err); }
       return;
     }
 
     if (e.button === 1 || e.button === 2) {
-      drag = { mode: 'pan', x: pos[0], y: pos[1] };
+      drag = { mode: 'pan', x: p[0], y: p[1] };
       c.classList.add('panning');
       e.preventDefault();
       return;
@@ -350,38 +486,38 @@ function wire() {
         selected = new Set([hit]);
       }
       draw();
-      updateHud();
+      render();
       return;
     }
-    drag = { mode: 'band', x: pos[0], y: pos[1], add: e.shiftKey || e.ctrlKey };
+    drag = { mode: 'band', x: p[0], y: p[1], add: e.shiftKey || e.ctrlKey };
   });
 
   window.addEventListener('mousemove', (e) => {
     if (!drag) return;
-    const pos = canvasPos(e);
+    const p = canvasPos(e);
     if (drag.mode === 'pan') {
-      view.ox += pos[0] - drag.x;
-      view.oy += pos[1] - drag.y;
-      drag.x = pos[0];
-      drag.y = pos[1];
+      view.ox += p[0] - drag.x;
+      view.oy += p[1] - drag.y;
+      drag.x = p[0];
+      drag.y = p[1];
       draw();
     } else {
-      band = { x: Math.min(drag.x, pos[0]), y: Math.min(drag.y, pos[1]),
-               w: Math.abs(pos[0] - drag.x), h: Math.abs(pos[1] - drag.y) };
+      band = { x: Math.min(drag.x, p[0]), y: Math.min(drag.y, p[1]),
+               w: Math.abs(p[0] - drag.x), h: Math.abs(p[1] - drag.y) };
       draw();
     }
   });
 
   window.addEventListener('mouseup', () => {
-    if (drag && drag.mode === 'band' && band) {
+    if (drag && drag.mode === 'band' && band && S.sheet) {
       const a = toImg(band.x, band.y);
       const b = toImg(band.x + band.w, band.y + band.h);
       const next = drag.add ? new Set(selected) : new Set();
-      boxes.forEach((r, i) => {
+      S.sheet.boxes.forEach((r, i) => {
         if (r.x < b[0] && r.x + r.w > a[0] && r.y < b[1] && r.y + r.h > a[1]) next.add(i);
       });
       selected = next;
-      updateHud();
+      render();
     }
     drag = null;
     band = null;
@@ -389,71 +525,141 @@ function wire() {
     draw();
   });
 
-  c.addEventListener('dblclick', () => { fitView(); draw(); updateHud(); });
+  c.addEventListener('dblclick', () => { fitView(); draw(); render(); });
   c.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // 드래그앤드롭
+  // 드래그앤드롭 — 화면 어디에 놓아도 받는다
   const stage = $('stage');
-  ['dragenter', 'dragover'].forEach((ev) => stage.addEventListener(ev, (e) => {
+  ['dragenter', 'dragover'].forEach((ev) => document.addEventListener(ev, (e) => {
     e.preventDefault();
-    $('drop').classList.add('over');
+    stage.classList.add('over');
   }));
-  ['dragleave', 'drop'].forEach((ev) => stage.addEventListener(ev, (e) => {
+  ['dragleave', 'drop'].forEach((ev) => document.addEventListener(ev, (e) => {
     e.preventDefault();
-    $('drop').classList.remove('over');
+    stage.classList.remove('over');
   }));
-  stage.addEventListener('drop', (e) => openFile(e.dataTransfer.files[0]));
+  document.addEventListener('drop', (e) => {
+    const files = Array.from(e.dataTransfer.files);
+    const atlas = files.filter((f) => /\.(json|xml|plist|atlas)$/i.test(f.name));
+    const imgs = files.filter((f) => atlas.indexOf(f) < 0);
+    if (imgs.length) addFiles(imgs);
+    if (atlas.length && S.sheet) loadAtlasFile(atlas[0]);
+  });
 
-  $('pick').addEventListener('click', () => $('file').click());
-  $('file').addEventListener('change', (e) => openFile(e.target.files[0]));
-  $('reset').addEventListener('click', () => {
-    sheet = null;
-    boxes = [];
-    selected.clear();
-    $('drop').hidden = false;
-    $('view').hidden = true;
-    $('side').hidden = true;
-    $('file').value = '';
-    updateHud();
+  // 라이브러리 버튼
+  $('add').addEventListener('click', () => $('file').click());
+  $('file').addEventListener('change', (e) => {
+    addFiles(Array.from(e.target.files));
+    e.target.value = '';
+  });
+  $('remove').addEventListener('click', () => {
+    if (S.active >= 0) removeSheet(S.active);
+  });
+  $('clear').addEventListener('click', async () => {
+    S = JSON.parse(bridge.clear_sheets());
+    await showActive();
+  });
+  $('lang').addEventListener('change', (e) => {
+    setLang(e.target.value);
+    render();
+  });
+
+  // 옵션 섹션 접기/펴기
+  document.querySelectorAll('.sec').forEach((sec) => {
+    const key = 'sec:' + sec.dataset.key;
+    if (localStorage.getItem(key) === '1') sec.classList.add('open');
+    sec.querySelector('.sec-head').addEventListener('click', (e) => {
+      if (e.target.classList.contains('sec-act')) return;
+      sec.classList.toggle('open');
+      sec.querySelector('.mark').textContent = sec.classList.contains('open') ? '▾' : '▸';
+      localStorage.setItem(key, sec.classList.contains('open') ? '1' : '0');
+    });
+    sec.querySelector('.mark').textContent = sec.classList.contains('open') ? '▾' : '▸';
   });
 
   // 슬라이더
-  [['tol', 'tol-v'], ['merge', 'merge-v'], ['minsize', 'minsize-v'],
-   ['minarea', 'minarea-v'], ['pad', 'pad-v']].forEach((pair) => {
-    const el = $(pair[0]);
-    el.addEventListener('input', () => {
-      $(pair[1]).value = el.value;
-      if (pair[0] !== 'pad') scheduleDetect();
+  SLIDERS.forEach((id) => {
+    $(id).addEventListener('input', (e) => {
+      document.querySelector('[data-slider="' + id + '"] output').textContent = e.target.value;
+      pushOpts(id === 'pad' ? 400 : 180);
     });
   });
 
-  $('use-bg').addEventListener('change', (e) => {
-    $('bg').disabled = !e.target.checked;
-    $('eyedrop').disabled = !e.target.checked;
-    if (!e.target.checked) setEyedrop(false);
-    runDetect();
+  ['use-bg', 'square', 'use-atlas', 'restore', 'fliprot'].forEach((id) => {
+    $(id).addEventListener('change', () => pushOpts(0));
   });
-  $('bg').addEventListener('change', runDetect);
-  $('eyedrop').addEventListener('click', () => setEyedrop(!eyedropping));
+  $('subdir').addEventListener('change', renderExport);
+  $('with-json').addEventListener('change', renderExport);
 
-  $('all').addEventListener('click', selectAll);
-  $('none').addEventListener('click', () => {
+  $('pick-color').addEventListener('click', () => $('bg').click());
+  $('bg').addEventListener('change', () => {
+    $('use-bg').checked = true;
+    pushOpts(0);
+  });
+  $('eyedrop').addEventListener('click', () => setEyedrop(!eyedropping));
+  $('rerun').addEventListener('click', () => pushOpts(0));
+  $('apply-all').addEventListener('click', () => {
+    try {
+      S = JSON.parse(bridge.apply_to_all(S.active));
+      render();
+      toast(s('이 설정을 모든 시트에 적용'));
+    } catch (err) { fail(err); }
+  });
+
+  $('prefix').addEventListener('change', () => {
+    try {
+      S = JSON.parse(bridge.set_prefix(S.active, $('prefix').value));
+      render();
+    } catch (err) { fail(err); }
+  });
+
+  $('atlas-load').addEventListener('click', () => $('atlas-file').click());
+  $('atlas-file').addEventListener('change', (e) => {
+    if (e.target.files[0]) loadAtlasFile(e.target.files[0]);
+    e.target.value = '';
+  });
+  $('atlas-clear').addEventListener('click', () => {
+    try {
+      S = JSON.parse(bridge.clear_atlas(S.active));
+      selected.clear();
+      draw();
+      render();
+    } catch (err) { fail(err); }
+  });
+
+  $('sel-all').addEventListener('click', selectAll);
+  $('sel-none').addEventListener('click', () => {
     selected.clear();
     draw();
-    updateHud();
+    render();
   });
-  $('save').addEventListener('click', save);
-  $('lang').addEventListener('change', (e) => setLang(e.target.value));
+
+  $('big').addEventListener('click', exportActive);
+  $('sub').addEventListener('click', exportAll);
 
   window.addEventListener('resize', resize);
   window.addEventListener('keydown', (e) => {
-    if (!sheet) return;
-    if (e.key === 'f' || e.key === 'F') { fitView(); draw(); updateHud(); }
+    if (!S.sheet) return;
+    const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
+    if (typing) return;
+    if (e.key === 'f' || e.key === 'F') { fitView(); draw(); render(); }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
       e.preventDefault();
       selectAll();
     }
   });
+}
+
+async function loadAtlasFile(file) {
+  try {
+    const buf = new Uint8Array(await file.arrayBuffer());
+    S = JSON.parse(bridge.load_atlas(S.active, buf, file.name));
+    selected.clear();
+    draw();
+    render();
+    log(file.name + ' — ' + s('{a0} · {a1}프레임', S.sheet.atlasKind,
+                                      S.sheet.atlasCount));
+  } catch (err) { fail(err); }
 }
 
 wire();
