@@ -1,0 +1,323 @@
+/* 데스크톱(tkinter + vista 테마) 화면을 그대로 옮겼다.
+ * 색은 sprite_studio.py 의 상수를 그대로 쓴다.
+ *   BG_DARK #2b2b2b · BG_ROW #3c3f41 · BG_SEL #0d5c73
+ *   FG_TEXT #e0e0e0 · FG_DIM #9aa0a6 · ACCENT #00e5ff · SEL #ffd54f
+ *   SEC_BG #dfe3e6 · SEC_FG #1f2328 · SEC_MARK #5a6672
+ */
+
+:root {
+  --panel: #f0f0f0;          /* ttk vista 기본 패널색 */
+  --panel-line: #a0a0a0;
+  --fg: #000;
+  --note: #888;
+
+  --bg-dark: #2b2b2b;
+  --bg-row: #3c3f41;
+  --bg-sel: #0d5c73;
+  --fg-text: #e0e0e0;
+  --fg-dim: #9aa0a6;
+  --accent: #00e5ff;
+  --sel: #ffd54f;
+
+  --sec-bg: #dfe3e6;
+  --sec-bg-hover: #cdd4d9;
+  --sec-fg: #1f2328;
+  --sec-mark: #5a6672;
+
+  --big: #0b7285;
+  --big-hover: #0e8fa3;
+  --big-off: #9aa0a6;
+
+  --ui: "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+  --mono: Consolas, "D2Coding", monospace;
+}
+
+:root:lang(en) { --ui: "Segoe UI", system-ui, sans-serif; }
+:root:lang(ja) { --ui: Meiryo, "Yu Gothic", system-ui, sans-serif; }
+
+* { box-sizing: border-box; }
+
+/* id 선택자로 display 를 준 요소가 많아, hidden 이 밀리지 않게 못을 박아 둔다 */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--panel);
+  color: var(--fg);
+  font: 12px/1.45 var(--ui);
+  overflow: hidden;
+}
+
+button, select, input[type=text] {
+  font: inherit;
+  font-size: 12px;
+  color: var(--fg);
+  background: #fdfdfd;
+  border: 1px solid var(--panel-line);
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { background: #e5f1fb; border-color: #0078d7; }
+button:disabled { color: #a0a0a0; background: #f4f4f4; cursor: default; }
+input[type=text] { cursor: text; }
+input[type=range] { width: 100%; accent-color: #0078d7; }
+
+/* ------------------------------------------------------------- 로딩 */
+#boot {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bg-dark);
+  color: var(--fg-text);
+  z-index: 50;
+}
+.boot-inner { text-align: center; }
+.spin {
+  width: 34px; height: 34px;
+  margin: 0 auto 16px;
+  border: 3px solid #555;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#boot p { margin: 4px 0; }
+.boot-sub { color: var(--fg-dim); font-size: 11px; max-width: 34ch; }
+
+/* ------------------------------------------------------------- 전체 틀 */
+main {
+  display: flex;
+  height: 100%;
+  padding: 6px;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------- 왼쪽 라이브러리 */
+#lib {
+  width: 208px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+}
+.lang-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.lang-row select { width: 96px; }
+#lib h2 { font-size: 13px; font-weight: 700; margin: 0; }
+.lib-hint {
+  color: #666;
+  font-size: 11px;
+  margin: 0 0 4px;
+}
+#lib-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg-dark);
+  border: 1px solid #555;
+  padding: 3px;
+}
+#lib-empty {
+  color: var(--fg-dim);
+  text-align: center;
+  padding: 20px 0;
+  margin: 0;
+  font-size: 12px;
+}
+.sheet-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  background: var(--bg-row);
+  padding: 4px;
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+.sheet-row.on { background: var(--bg-sel); }
+.sheet-row img { width: 64px; height: 64px; flex: none; image-rendering: pixelated; }
+.sheet-info { flex: 1; min-width: 0; }
+.sheet-name {
+  color: var(--fg-text);
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sheet-meta { color: var(--fg-dim); font: 11px var(--mono); }
+.sheet-count { color: var(--accent); font: 11px var(--mono); }
+.sheet-x {
+  color: var(--fg-dim);
+  font: 700 15px Arial, sans-serif;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.sheet-x:hover { color: #ff5252; }
+
+.lib-btns { margin-top: 6px; display: grid; gap: 2px; }
+.lib-btns button { width: 100%; }
+
+/* ------------------------------------------------------------- 가운데 */
+#center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tabs { display: flex; gap: 2px; }
+.tab {
+  border-radius: 3px 3px 0 0;
+  border-bottom: none;
+  background: #f0f0f0;
+  padding: 4px 14px;
+}
+.tab.active { background: #fff; font-weight: 600; }
+.tab:disabled { color: #a0a0a0; }
+.tab-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--panel-line);
+  background: #fff;
+  padding: 4px;
+}
+#title { font-size: 14px; font-weight: 700; padding: 2px 1px; }
+#stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  margin: 4px 0;
+  border: 1px solid #666;
+  background: var(--bg-dark);
+}
+#view { display: block; width: 100%; height: 100%; cursor: default; }
+#view.panning { cursor: grabbing; }
+#view.eyedropping { cursor: crosshair; }
+#drop-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--fg-dim);
+  text-align: center;
+  pointer-events: none;
+}
+#stage.over { outline: 2px dashed var(--accent); outline-offset: -6px; }
+#status { font-size: 11px; padding: 1px; }
+
+#log {
+  height: 92px;
+  flex: none;
+  margin: 6px 0 0;
+  padding: 4px 6px;
+  overflow-y: auto;
+  background: #1e1e1e;
+  color: var(--fg-text);
+  font: 11px/1.5 var(--mono);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------------- 오른쪽 */
+#right {
+  width: 312px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+}
+#opts { flex: 1; min-height: 0; overflow-y: auto; }
+
+.sec { margin-bottom: 4px; }
+.sec-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--sec-bg);
+  cursor: pointer;
+  padding: 4px 3px;
+  user-select: none;
+}
+.sec-head:hover { background: var(--sec-bg-hover); }
+.mark { color: var(--sec-mark); width: 18px; text-align: center; }
+.sec-title { flex: 1; color: var(--sec-fg); font-size: 13px; font-weight: 700; }
+.sec-act { padding: 2px 10px; }
+.sec-body { padding: 6px 10px; }
+.sec:not(.open) .sec-body { display: none; }
+
+.note { color: var(--note); font-size: 11px; margin: 0 0 3px; }
+.note.atlas { white-space: pre-line; }
+.row { display: flex; align-items: center; gap: 4px; margin: 4px 0; }
+.row.two { justify-content: space-between; }
+.row.two button { flex: 1; }
+.cb { display: flex; align-items: center; gap: 5px; margin: 2px 0; cursor: pointer; }
+.cb input { margin: 0; }
+.wide { width: 100%; margin-top: 6px; }
+
+.slider { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+.sl-lbl { width: 132px; flex: none; font-size: 11px; }
+.slider input { flex: 1; }
+
+.bg-row { margin: 6px 0 2px; }
+#swatch {
+  width: 22px; height: 16px;
+  border: 1px solid #808080;
+  background: #fff;
+  display: inline-block;
+}
+.prefix-row { justify-content: space-between; }
+.prefix-row input { width: 150px; }
+
+/* 내보내기 영역 — 데스크톱의 오른쪽 아래 고정 칸 */
+#export { flex: none; padding-top: 6px; }
+#export-hint {
+  color: #555;
+  font-size: 11px;
+  margin: 0 0 3px;
+  white-space: pre-line;
+  min-height: 2.6em;
+}
+#big {
+  width: 100%;
+  padding: 14px 8px;
+  border: none;
+  border-radius: 0;
+  background: var(--big);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+}
+#big:hover:not(:disabled) { background: var(--big-hover); }
+#big:disabled { background: var(--big-off); color: #e8e8e8; }
+#sub { width: 100%; margin-top: 4px; }
+
+/* ------------------------------------------------------------- 알림 */
+#toast {
+  position: fixed;
+  left: 50%; bottom: 26px;
+  transform: translateX(-50%);
+  background: #1e1e1e;
+  color: var(--fg-text);
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 8px 16px;
+  z-index: 60;
+}
+#toast.err { border-color: #ff5252; color: #ff8a80; }
+
+/* ------------------------------------------------------------- 좁은 화면 */
+@media (max-width: 900px) {
+  main { flex-direction: column; overflow-y: auto; }
+  #lib, #right { width: auto; }
+  #lib-list { min-height: 120px; max-height: 220px; }
+  #center { min-height: 60vh; }
+  #opts { overflow: visible; }
+}

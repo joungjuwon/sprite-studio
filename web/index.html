@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite Studio</title>
+<meta name="description" content="스프라이트 시트에서 스프라이트를 추출하는 도구. 브라우저에서 바로 실행되며 이미지는 업로드되지 않습니다.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="boot">
+  <div class="boot-inner">
+    <div class="spin" aria-hidden="true"></div>
+    <p id="boot-msg">준비하는 중…</p>
+    <p class="boot-sub">파이썬 엔진을 내려받고 있습니다. 처음 한 번만 걸립니다.</p>
+  </div>
+</div>
+
+<main id="main" hidden>
+
+  <!-- ============================================ 왼쪽: 시트 라이브러리 -->
+  <section id="lib">
+    <div class="lang-row">
+      <label for="lang" data-s="언어">언어</label>
+      <select id="lang">
+        <option value="ko">한국어</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+      </select>
+    </div>
+
+    <h2 id="lib-title" data-s="등록된 시트 ({a0})">등록된 시트 (0)</h2>
+    <p class="lib-hint" data-s="썸네일을 2번 탭으로 끌어다 놓으면 추가됩니다">
+      썸네일을 2번 탭으로 끌어다 놓으면 추가됩니다
+    </p>
+
+    <div id="lib-list">
+      <p id="lib-empty" data-s="\n시트를 여기로\n끌어다 놓으세요\n">시트를 여기로<br>끌어다 놓으세요</p>
+    </div>
+
+    <div class="lib-btns">
+      <button id="add" data-s="시트 추가…">시트 추가…</button>
+      <button id="remove" data-s="선택 시트 제거">선택 시트 제거</button>
+      <button id="clear" data-s="전체 비우기">전체 비우기</button>
+    </div>
+    <input id="file" type="file" accept="image/*" multiple hidden>
+    <input id="atlas-file" type="file" accept=".json,.xml,.plist,.atlas" hidden>
+  </section>
+
+  <!-- ============================================ 가운데: 탭 + 캔버스 -->
+  <section id="center">
+    <div class="tabs">
+      <button class="tab active" data-s="  1. 스프라이트 추출  ">1. 스프라이트 추출</button>
+      <button class="tab" id="tab2" disabled data-s="  2. 새 시트 만들기  ">2. 새 시트 만들기</button>
+    </div>
+    <div class="tab-body">
+      <div id="title" data-s="시트를 등록하세요">시트를 등록하세요</div>
+      <div id="stage">
+        <canvas id="view"></canvas>
+        <div id="drop-hint"><span data-s="\n시트를 여기로\n끌어다 놓으세요\n">시트를 여기로<br>끌어다 놓으세요</span></div>
+      </div>
+      <div id="status" data-s="준비됨">준비됨</div>
+    </div>
+    <pre id="log"></pre>
+  </section>
+
+  <!-- ============================================ 오른쪽: 옵션 + 내보내기 -->
+  <aside id="right">
+    <div id="opts">
+
+      <div class="sec" data-key="atlas">
+        <div class="sec-head">
+          <span class="mark">▸</span>
+          <span class="sec-title" data-s="좌표 파일 (아틀라스)">좌표 파일 (아틀라스)</span>
+        </div>
+        <div class="sec-body">
+          <p id="atlas-lbl" class="note atlas" data-s="없음 - 픽셀로 자동 감지 중">없음 - 픽셀로 자동 감지 중</p>
+          <div class="row two">
+            <button id="atlas-load" data-s="불러오기…">불러오기…</button>
+            <button id="atlas-clear" data-s="해제">해제</button>
+          </div>
+          <label class="cb"><input type="checkbox" id="use-atlas" checked>
+            <span data-s="좌표 파일 사용">좌표 파일 사용</span></label>
+          <label class="cb"><input type="checkbox" id="restore" checked>
+            <span data-s="트리밍 원래 크기로 복원">트리밍 원래 크기로 복원</span></label>
+          <label class="cb"><input type="checkbox" id="fliprot">
+            <span data-s="회전 방향 반대로 (그림이 뒤집혀 나올 때)">회전 방향 반대로 (그림이 뒤집혀 나올 때)</span></label>
+        </div>
+      </div>
+
+      <div class="sec" data-key="split">
+        <div class="sec-head">
+          <span class="mark">▸</span>
+          <span class="sec-title" data-s="추출 옵션">추출 옵션</span>
+          <button class="sec-act" id="rerun" data-s="추출">추출</button>
+        </div>
+        <div class="sec-body">
+          <p class="note" data-s="선택한 시트에만 적용됩니다">선택한 시트에만 적용됩니다</p>
+          <div class="slider" data-slider="merge">
+            <span class="sl-lbl"><b data-s="조각 합치기(px)">조각 합치기(px)</b>: <output>0</output></span>
+            <input type="range" id="merge" min="0" max="20" value="0">
+          </div>
+          <div class="slider" data-slider="min_size">
+            <span class="sl-lbl"><b data-s="최소 가로·세로(px)">최소 가로·세로(px)</b>: <output>3</output></span>
+            <input type="range" id="min_size" min="1" max="40" value="3">
+          </div>
+          <div class="slider" data-slider="min_area">
+            <span class="sl-lbl"><b data-s="최소 픽셀 수">최소 픽셀 수</b>: <output>8</output></span>
+            <input type="range" id="min_area" min="1" max="200" value="8">
+          </div>
+
+          <div class="row bg-row">
+            <label class="cb"><input type="checkbox" id="use-bg">
+              <span data-s="단색 배경">단색 배경</span></label>
+            <span id="swatch"></span>
+            <button id="pick-color" data-s="색">색</button>
+            <button id="eyedrop" data-s="스포이트">스포이트</button>
+            <input type="color" id="bg" value="#ffffff" hidden>
+          </div>
+
+          <div class="slider" data-slider="tol">
+            <span class="sl-lbl"><b data-s="배경색 허용 범위">배경색 허용 범위</b>: <output>20</output></span>
+            <input type="range" id="tol" min="0" max="120" value="20">
+          </div>
+          <button id="apply-all" class="wide" data-s="이 설정을 모든 시트에 적용">이 설정을 모든 시트에 적용</button>
+        </div>
+      </div>
+
+      <div class="sec" data-key="crop">
+        <div class="sec-head">
+          <span class="mark">▸</span>
+          <span class="sec-title" data-s="잘라내기 · 파일 이름">잘라내기 · 파일 이름</span>
+        </div>
+        <div class="sec-body">
+          <div class="slider" data-slider="pad">
+            <span class="sl-lbl"><b data-s="여백(px)">여백(px)</b>: <output>0</output></span>
+            <input type="range" id="pad" min="0" max="20" value="0">
+          </div>
+          <label class="cb"><input type="checkbox" id="square">
+            <span data-s="정사각형으로 크기 통일">정사각형으로 크기 통일</span></label>
+          <div class="row prefix-row">
+            <label for="prefix" data-s="이름 접두어">이름 접두어</label>
+            <input type="text" id="prefix" value="sprite">
+          </div>
+          <label class="cb"><input type="checkbox" id="subdir" checked>
+            <span data-s="이름 접두어로 하위 폴더 만들기">이름 접두어로 하위 폴더 만들기</span></label>
+          <label class="cb"><input type="checkbox" id="with-json" checked>
+            <span data-s="좌표 파일 함께 저장">좌표 파일 함께 저장</span></label>
+        </div>
+      </div>
+
+      <div class="sec" data-key="boxsel">
+        <div class="sec-head">
+          <span class="mark">▸</span>
+          <span class="sec-title" data-s="스프라이트 선택 (화면에서 드래그)">스프라이트 선택 (화면에서 드래그)</span>
+        </div>
+        <div class="sec-body">
+          <div class="row two">
+            <button id="sel-all" data-s="전체 선택">전체 선택</button>
+            <button id="sel-none" data-s="선택 해제">선택 해제</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="export">
+      <p id="export-hint" data-s="시트를 등록하고 추출하면 내보낼 수 있습니다">시트를 등록하고 추출하면 내보낼 수 있습니다</p>
+      <button id="big" disabled data-s="시트를 등록하세요">시트를 등록하세요</button>
+      <button id="sub" disabled data-s="모든 시트 한 번에 내보내기">모든 시트 한 번에 내보내기</button>
+    </div>
+  </aside>
+
+</main>
+
+<div id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

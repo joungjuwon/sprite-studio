@@ -1,0 +1,50 @@
+name: Deploy web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'spritecore/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # web/ 을 사이트 뿌리로, spritecore/ 를 그 아래로. 로컬 개발 서버
+      # (web/serve.py) 와 경로가 같아지므로 코드를 고칠 필요가 없다.
+      - name: 사이트 모으기
+        run: |
+          mkdir -p _site
+          cp -r web/. _site/
+          cp -r spritecore _site/spritecore
+          rm -f _site/serve.py
+          echo "— 올라갈 파일 —"
+          find _site -type f | sort
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

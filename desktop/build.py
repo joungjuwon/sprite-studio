@@ -7,6 +7,9 @@ Sprite Studio 빌드 스크립트.
 
 sprite_studio.spec 이 같은 폴더에 있으면 그것을 사용하고,
 없으면 명령줄 옵션으로 직접 빌드합니다.
+
+어디서 실행해도 이 파일이 있는 desktop/ 을 기준으로 동작합니다.
+결과물은 desktop/dist/ 에 생깁니다.
 """
 
 import argparse
@@ -16,6 +19,9 @@ import subprocess
 import sys
 
 DEPS = ["pillow", "numpy", "scipy", "tkinterdnd2", "pyinstaller"]
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(HERE)          # spritecore 가 있는 곳
 
 
 def human(nbytes):
@@ -57,6 +63,8 @@ def main():
     ap.add_argument("--console", action="store_true", help="콘솔 창 함께 표시 (디버깅용)")
     args = ap.parse_args()
 
+    os.chdir(HERE)                    # 상대 경로를 desktop/ 기준으로 맞춘다
+
     print("=" * 52)
     print("  Sprite Studio 빌드")
     print("=" * 52)
@@ -64,7 +72,7 @@ def main():
 
     if not os.path.exists(args.source):
         print(f"\n[오류] '{args.source}' 을(를) 찾을 수 없습니다.")
-        print("이 스크립트를 sprite_studio.py 와 같은 폴더에 두고 실행하세요.")
+        print("이 스크립트는 sprite_studio.py 와 같은 폴더에 있어야 합니다.")
         print(f"현재 폴더: {os.getcwd()}")
         return 1
 
@@ -95,6 +103,7 @@ def main():
                "--name", args.name,
                "--collect-all", "tkinterdnd2",
                "--hidden-import", "scipy.ndimage",
+               "--paths", REPO,           # 상위 폴더의 spritecore
                "--noconfirm", "--clean", args.source]
         if os.path.exists("sprite_studio.ico"):
             cmd += ["--icon", "sprite_studio.ico"]

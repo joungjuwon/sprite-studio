@@ -1,4 +1,4 @@
+# 공용 코어(spritecore)가 쓰는 것. 웹은 Pyodide 가 알아서 챙기므로
+# 이 파일은 데스크톱·명령줄에서만 필요하다.
 pillow>=10.0
 numpy>=1.24
-scipy>=1.10
-tkinterdnd2>=0.4

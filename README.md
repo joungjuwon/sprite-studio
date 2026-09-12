@@ -25,21 +25,71 @@ If you want to use it right away without installation, download `SpriteStudio.ex
 Python 3.8 이상이 필요합니다.
 
 ```bash
-pip install -r requirements.txt
-python sprite_studio.py
+pip install -r desktop/requirements.txt
+python desktop/sprite_studio.py
 ```
 
-`tkinterdnd2`가 없으면 드래그앤드롭 대신 파일 선택 버튼으로 동작합니다. `scipy`는 없어도 되지만 큰 시트에서 처리 속도가 크게 차이 납니다.
+`tkinterdnd2`가 없으면 드래그앤드롭 대신 파일 선택 버튼으로 동작합니다. `scipy`는 없어도 됩니다. 없으면 순수 numpy 경로로 넘어가는데 결과는 같고
+속도 차이도 크지 않습니다 (웹 버전이 이 경로를 씁니다).
 
 ## 실행 파일 만들기
 
-Windows에서 `build.bat`을 더블클릭하거나:
+Windows에서 `desktop/build.bat`을 더블클릭하거나:
 
 ```bash
-python build.py
+python desktop/build.py
 ```
 
-`dist/SpriteStudio.exe` 하나만 배포하면 됩니다. 폴더 방식이 필요하면 `python build.py --onedir`을 쓰세요. 실행 속도가 훨씬 빠릅니다.
+`desktop/dist/SpriteStudio.exe` 하나만 배포하면 됩니다. 폴더 방식이 필요하면 `python desktop/build.py --onedir`을 쓰세요. 실행 속도가 훨씬 빠릅니다.
+
+## 웹 버전
+
+설치 없이 브라우저에서 바로 쓸 수 있는 추출 도구가 있습니다. 데스크톱 앱과
+같은 `spritecore` 코드를 Pyodide 위에서 돌리므로 결과가 같습니다. 이미지는
+브라우저 안에서만 처리되고 서버로 올라가지 않습니다.
+
+로컬에서 확인하려면:
+
+```bash
+python web/serve.py
+```
+
+첫 실행 때 파이썬 엔진(약 10MB)을 내려받느라 몇 초 걸리고, 그 뒤로는
+캐시에서 바로 뜹니다. `main` 에 올리면 GitHub Actions 가 Pages 로 배포합니다.
+
+웹은 추출만 다룹니다. 여러 시트 관리와 배치 편집은 데스크톱 앱을 쓰세요.
+
+## 코드 구조
+
+세 덩어리로 나뉩니다. 가운데 `spritecore/` 를 데스크톱과 웹이 함께 씁니다.
+
+```
+spritecore/            공용 코어 — UI 의존 없음 (numpy + Pillow 만)
+  detect.py              픽셀에서 스프라이트 찾기 · 잘라내기
+  packing.py             새 시트 배치 계산
+  atlas.py               좌표 파일 읽기 (TexturePacker / Sparrow / Cocos2d / libGDX)
+  i18n.py                번역표 — 데스크톱과 웹이 같은 문구를 쓴다
+  constants.py           공통 상수
+  util.py                이름 정리, 체커보드
+
+desktop/               데스크톱 (tkinter)
+  sprite_studio.py       앱 본체
+  extract_sprites.py     명령줄 추출 도구
+  build.py · build.bat   실행 파일 만들기
+  sprite_studio.spec     PyInstaller 설정
+  requirements.txt       데스크톱 전용 의존성
+
+web/                   브라우저 (Pyodide)
+  index.html · style.css · app.js   화면과 입력
+  bridge.py              spritecore 를 브라우저에서 쓰기 좋게 감싼 층
+  serve.py               로컬 확인용 서버
+
+requirements.txt       코어 의존성 (pillow, numpy)
+```
+
+`spritecore` 는 tkinter 를 모르기 때문에 브라우저에서도 그대로 돌아갑니다.
+파일 시스템을 건드리는 함수에는 내용만 받는 짝이 있습니다 —
+`parse_atlas_file(path)` ↔ `parse_atlas_data(data, ext)`.
 
 ## 사용법
 
@@ -94,11 +144,13 @@ Drop a sheet and it finds the drawn objects and cuts them into individual images
 ## Quick start
 
 ```bash
-pip install -r requirements.txt
-python sprite_studio.py
+pip install -r desktop/requirements.txt
+python desktop/sprite_studio.py
 ```
 
-To build a standalone Windows executable, run `python build.py` and share `dist/SpriteStudio.exe`.
+To build a standalone Windows executable, run `python desktop/build.py` and share `desktop/dist/SpriteStudio.exe`.
+
+There is also a browser version in `web/` that runs the same `spritecore` code on Pyodide — no install, and images never leave the browser. Run `python web/serve.py` to try it locally.
 
 ---
 
@@ -120,8 +172,10 @@ To build a standalone Windows executable, run `python build.py` and share `dist/
 ## はじめに
 
 ```bash
-pip install -r requirements.txt
-python sprite_studio.py
+pip install -r desktop/requirements.txt
+python desktop/sprite_studio.py
 ```
 
-Windows用の実行ファイルは `python build.py` で作成できます。
+Windows用の実行ファイルは `python desktop/build.py` で作成できます。
+
+`web/` にはブラウザ版もあります。デスクトップ版と同じ `spritecore` を Pyodide で動かすため結果は同じで、画像はブラウザの外に出ません。`python web/serve.py` でローカル確認できます。

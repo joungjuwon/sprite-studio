@@ -1,0 +1,6 @@
+-r ../requirements.txt
+
+# tkinterdnd2 가 없으면 드래그앤드롭 대신 파일 선택 버튼으로 동작한다.
+# scipy 는 없어도 되지만 있으면 큰 시트 감지가 조금 더 빠르다.
+scipy>=1.10
+tkinterdnd2>=0.4
