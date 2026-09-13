@@ -19,6 +19,7 @@ UI 와 무관한 `spritecore` 패키지에 있고, 웹 버전도 그것을 그�
 """
 
 import json
+import locale
 import math
 import os
 import sys
@@ -92,6 +93,33 @@ def save_settings(data):
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
+
+
+def system_lang():
+    """운영체제 표시 언어에 맞는 언어 코드. 지원하지 않는 언어면 영어."""
+    if sys.platform.startswith("win"):
+        try:
+            import ctypes
+            # 하위 10비트가 주 언어: 0x12 한국어, 0x11 일본어, 0x09 영어
+            primary = ctypes.windll.kernel32.GetUserDefaultUILanguage() & 0x3FF
+            return {0x12: "ko", 0x11: "ja"}.get(primary, "en")
+        except Exception:
+            pass
+    names = [os.environ.get(k, "") for k in ("LC_ALL", "LC_MESSAGES", "LANG")]
+    try:
+        names.append(locale.getlocale()[0] or "")
+    except Exception:
+        pass
+    for name in names:
+        low = name.lower()
+        if low in ("", "c", "posix"):
+            continue
+        # 처음 설정된 값만 본다. "ko_KR.UTF-8" 같은 코드와 "Korean_Korea" 같은 이름을 모두 받는다
+        for code, word in (("ko", "korean"), ("ja", "japanese")):
+            if low.split("_")[0].split(".")[0] == code or low.startswith(word):
+                return code
+        return "en"
+    return "en"
 
 
 def parse_drop_paths(raw):
@@ -348,7 +376,7 @@ class SpriteStudio:
 
         lang_row = ttk.Frame(lib)
         lang_row.pack(fill="x", pady=(0, 4))
-        ttk.Label(lang_row, text=t("언어"), font=(i18n.UI_FONT, 9)).pack(side="left")
+        ttk.Label(lang_row, text="Language", font=(i18n.UI_FONT, 9)).pack(side="left")
         self.lang_box = ttk.Combobox(lang_row, state="readonly", width=10,
                                      values=[LANG_NAMES[c] for c in LANG_CODES])
         self.lang_box.set(LANG_NAMES[i18n.LANG])
@@ -852,7 +880,6 @@ class SpriteStudio:
             for s in self.sheets if s.path
         ]
         self.settings["active"] = self.active
-        self.settings["lang"] = i18n.LANG
         self.settings["outdir"] = self.v_outdir.get().strip()
         self.settings["prefs"] = {
             "spacing": self.v_spacing.get(), "snap": self.v_snap.get(),
@@ -2089,7 +2116,10 @@ def main():
     except Exception:
         pass
 
-    set_lang(load_settings().get("lang", "ko"))
+    # 직접 고른 언어가 있으면 그것, 없으면 운영체제 언어를 따른다.
+    # 자동으로 정한 언어는 저장하지 않아야 운영체제 언어를 바꿨을 때 따라간다.
+    saved = load_settings().get("lang")
+    set_lang(saved if saved in LANG_CODES else system_lang())
 
     def build(carry=None):
         """언어를 바꾸면 화면 전체를 다시 만든다 (작업 내용은 그대로 넘긴다)."""
