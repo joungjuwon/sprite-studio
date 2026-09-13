@@ -30,6 +30,59 @@ let selected = new Set();
 
 const view = { scale: 1, ox: 0, oy: 0 };
 
+/* ------------------------------------------------------------------ 언어 고르기 */
+const LANGS = ['ko', 'en', 'ja'];
+
+// 직접 고른 언어가 있으면 그것, 없으면 브라우저 언어 목록에서 처음 맞는 것.
+// 지원하지 않는 언어 사용자에게는 영어가 가장 읽기 쉬우므로 영어로 둔다.
+function pickLang() {
+  let saved = null;
+  try { saved = localStorage.getItem('lang'); } catch (e) { /* 저장소 막힘 */ }
+  if (LANGS.includes(saved)) return saved;
+  const prefs = navigator.languages && navigator.languages.length
+    ? navigator.languages : [navigator.language || ''];
+  for (const tag of prefs) {
+    const base = String(tag).toLowerCase().split('-')[0];
+    if (LANGS.includes(base)) return base;
+  }
+  return 'en';
+}
+
+const LANG = pickLang();
+
+// 번역표는 파이썬 엔진이 뜬 뒤에야 받을 수 있으므로, 부팅 화면 문구만 따로 둔다
+const BOOT = {
+  ko: {
+    ready: '준비하는 중…',
+    sub: '파이썬 엔진을 내려받고 있습니다. 처음 한 번만 걸립니다.',
+    python: '파이썬 엔진 불러오는 중…',
+    packages: 'numpy · Pillow 불러오는 중…',
+    core: 'Sprite Studio 코어 불러오는 중…',
+    failed: '불러오지 못했습니다 — ',
+  },
+  en: {
+    ready: 'Getting ready…',
+    sub: 'Downloading the Python engine. This only takes a while the first time.',
+    python: 'Loading the Python engine…',
+    packages: 'Loading numpy · Pillow…',
+    core: 'Loading Sprite Studio core…',
+    failed: 'Failed to load — ',
+  },
+  ja: {
+    ready: '準備しています…',
+    sub: 'Python エンジンをダウンロードしています。時間がかかるのは初回だけです。',
+    python: 'Python エンジンを読み込み中…',
+    packages: 'numpy · Pillow を読み込み中…',
+    core: 'Sprite Studio コアを読み込み中…',
+    failed: '読み込めませんでした — ',
+  },
+}[LANG];
+
+document.documentElement.lang = LANG;
+document.querySelectorAll('[data-boot]').forEach((el) => {
+  el.textContent = BOOT[el.dataset.boot];
+});
+
 /* ------------------------------------------------------------------ 문자열 */
 // 데스크톱 t() 와 같은 {a0} 자리표시자를 채운다
 function s(key, ...args) {
@@ -67,15 +120,15 @@ function fail(err) {
 async function boot() {
   const msg = $('boot-msg');
   try {
-    msg.textContent = '파이썬 엔진 불러오는 중…';
+    msg.textContent = BOOT.python;
     py = await loadPyodide({ indexURL: PYODIDE });
 
-    msg.textContent = 'numpy · Pillow 불러오는 중…';
+    msg.textContent = BOOT.packages;
     await py.loadPackage(['numpy', 'pillow']);
 
     // scipy 는 일부러 뺀다. 없으면 spritecore 가 순수 numpy 경로로 넘어가고
     // 내려받을 용량이 30MB 넘게 줄어든다.
-    msg.textContent = 'Sprite Studio 코어 불러오는 중…';
+    msg.textContent = BOOT.core;
     const sources = await Promise.all(
       CORE_FILES.map((f) => fetch('spritecore/' + f).then((r) => {
         if (!r.ok) throw new Error('spritecore/' + f + ' — ' + r.status);
@@ -88,7 +141,7 @@ async function boot() {
     py.runPython("import sys; sys.path.insert(0, '/app')");
     bridge = py.pyimport('bridge');
 
-    setLang(localStorage.getItem('lang') || 'ko');
+    setLang(LANG);
     S = JSON.parse(bridge.clear_sheets());
 
     $('boot').hidden = true;
@@ -97,7 +150,7 @@ async function boot() {
     resize();
     log('Sprite Studio web — ' + py.runPython('import sys; sys.version.split()[0]'));
   } catch (err) {
-    msg.textContent = '불러오지 못했습니다 — ' + err.message;
+    msg.textContent = BOOT.failed + err.message;
     $('boot').querySelector('.spin').style.display = 'none';
     console.error(err);
   }
@@ -106,7 +159,6 @@ async function boot() {
 /* ------------------------------------------------------------------ 언어 */
 function setLang(code) {
   str = JSON.parse(bridge.strings(code));
-  localStorage.setItem('lang', code);
   $('lang').value = code;
   document.documentElement.lang = code;
   document.querySelectorAll('[data-s]').forEach((el) => {
@@ -586,6 +638,9 @@ function wire() {
     await showActive();
   });
   $('lang').addEventListener('change', (e) => {
+    // 직접 고른 경우에만 기억한다. 자동 감지 결과는 저장하지 않아야
+    // 브라우저 언어를 바꿨을 때 다시 따라간다.
+    try { localStorage.setItem('lang', e.target.value); } catch (err) { /* 저장소 막힘 */ }
     setLang(e.target.value);
     render();
   });
