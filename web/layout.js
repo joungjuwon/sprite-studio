@@ -183,6 +183,7 @@ async function poolAdd(kind) {
     }
     view2.fitted = false;             // 새로 담았으니 화면에 다시 맞춘다
     await syncPool(res, true);
+    track('pool_add', { from: kind, count: bucket(res.added) });
     log(s('자동 배치: {a0}개', res.added) + ' — ' + s('스프라이트 {a0}개', P.items.length));
     switchTab(2);
   } catch (err) { fail(err); }
@@ -196,6 +197,7 @@ async function poolAddSheet(index) {
     const res = JSON.parse(bridge.pool_add(index, null, false, o.spacing, o.width, o.pot));
     view2.fitted = false;
     await syncPool(res, true);
+    track('pool_add', { from: 'thumb', count: bucket(res.added) });
     log(s('자동 배치: {a0}개', res.added) + ' — ' + s('스프라이트 {a0}개', P.items.length));
     switchTab(2);
   } catch (err) { fail(err); }
@@ -227,6 +229,8 @@ function exportLayout() {
     const msg = s('새 시트 저장: {a0} ({a1}×{a2}, {a3}개)', r.name, r.w, r.h, r.count);
     toast(msg);
     log(msg);
+    track('export', { type: 'new_sheet', count: bucket(r.count),
+                      json: $('with-atlas').checked });
     // 내보내기가 목록 순서를 화면 기준으로 다시 맞춘다
     syncPool(JSON.parse(bridge.pool_state(true)), true);
   } catch (err) { fail(err); }
@@ -257,7 +261,10 @@ function wireLayout() {
   const c = $('lview');
 
   $('tab1').addEventListener('click', () => switchTab(1));
-  $('tab2').addEventListener('click', () => switchTab(2));
+  $('tab2').addEventListener('click', () => {
+    if (tab !== 2) track('tab2');
+    switchTab(2);
+  });
 
   $('add-this').addEventListener('click', () => poolAdd('this'));
   $('add-all').addEventListener('click', () => poolAdd('all'));
@@ -267,12 +274,14 @@ function wireLayout() {
     const o = opts2();
     await syncPool(JSON.parse(bridge.pool_auto(o.spacing, o.width, o.pot)), false);
     log(s('자동 배치: {a0}개', P.items.length));
+    track('auto_pack');
   });
   $('grid-pack').addEventListener('click', async () => {
     const o = opts2();
     psel.clear();
     await syncPool(JSON.parse(bridge.pool_grid(o.spacing, o.width, o.pot)), true);
     log(s('격자 정렬: {a0}개 (화면에 놓인 순서 기준)', P.items.length));
+    track('grid_pack');
   });
 
   $('pool-add-img').addEventListener('click', () => $('pool-file').click());

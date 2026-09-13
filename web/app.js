@@ -61,20 +61,25 @@ function fail(err) {
   toast(msg, true);
   log(msg);
   console.error(err);
+  track('error', { kind: errKind(msg) });
 }
 
 /* ------------------------------------------------------------------ 부팅 */
 async function boot() {
   const msg = $('boot-msg');
+  const started = performance.now();
+  let stage = 'pyodide';
   try {
     msg.textContent = '파이썬 엔진 불러오는 중…';
     py = await loadPyodide({ indexURL: PYODIDE });
 
+    stage = 'packages';
     msg.textContent = 'numpy · Pillow 불러오는 중…';
     await py.loadPackage(['numpy', 'pillow']);
 
     // scipy 는 일부러 뺀다. 없으면 spritecore 가 순수 numpy 경로로 넘어가고
     // 내려받을 용량이 30MB 넘게 줄어든다.
+    stage = 'core';
     msg.textContent = 'Sprite Studio 코어 불러오는 중…';
     const sources = await Promise.all(
       CORE_FILES.map((f) => fetch('spritecore/' + f).then((r) => {
@@ -95,11 +100,15 @@ async function boot() {
     $('main').hidden = false;
     render();
     resize();
+    // 엔진을 받는 동안 떠나는 사람이 얼마나 되는지 보려고 걸린 시간을 남긴다
+    track('boot', { sec: Math.round((performance.now() - started) / 1000),
+                    lang: $('lang').value });
     log('Sprite Studio web — ' + py.runPython('import sys; sys.version.split()[0]'));
   } catch (err) {
     msg.textContent = '불러오지 못했습니다 — ' + err.message;
     $('boot').querySelector('.spin').style.display = 'none';
     console.error(err);
+    track('boot_fail', { stage });
   }
 }
 
@@ -340,6 +349,7 @@ async function showActive() {
 }
 
 async function addFiles(files) {
+  const had = (S.sheets || []).length;
   for (const f of files) {
     if (!f) continue;
     try {
@@ -350,6 +360,8 @@ async function addFiles(files) {
       fail(err);
     }
   }
+  const added = (S.sheets || []).length - had;
+  if (added > 0) track('sheet_add', { files: bucket(added) });
   await showActive();
 }
 
@@ -416,6 +428,9 @@ function exportActive() {
     download(r.name, r.data, 'application/zip');
     toast(s('{a0}개 저장 완료', r.count));
     log(r.name + ' — ' + s('{a0}개 저장 완료', r.count));
+    track('export', { type: selected.size ? 'selected' : 'sheet', count: bucket(r.count),
+                      source: (sh.atlasCount && sh.opts.use_atlas) ? 'atlas'
+                            : (sh.opts.use_bg ? 'solid_bg' : 'alpha') });
   } catch (err) { fail(err); }
 }
 
@@ -425,6 +440,8 @@ function exportAll() {
     download(r.name, r.data, 'application/zip');
     toast(s('{a0}개 저장 완료', r.count));
     log(r.name + ' — ' + s('{a0}개 저장 완료', r.count));
+    track('export', { type: 'all_sheets', count: bucket(r.count),
+                      sheets: bucket(S.sheets.length) });
   } catch (err) { fail(err); }
 }
 
@@ -588,6 +605,7 @@ function wire() {
   $('lang').addEventListener('change', (e) => {
     setLang(e.target.value);
     render();
+    track('lang', { lang: e.target.value });
   });
 
   // 옵션 섹션 접기/펴기
@@ -688,6 +706,7 @@ async function loadAtlasFile(file) {
     render();
     log(file.name + ' — ' + s('{a0} · {a1}프레임', S.sheet.atlasKind,
                                       S.sheet.atlasCount));
+    track('atlas_load', { kind: S.sheet.atlasKind });
   } catch (err) { fail(err); }
 }
 
