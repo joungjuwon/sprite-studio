@@ -123,9 +123,9 @@ Trimmed and rotated frames are restored to their original shape.
 | Pan | Drag with the middle or right mouse button |
 | Fit to window | Double-click, or press F |
 | Select an area | Drag across an empty area |
-| Add to selection | Shift+click or Shift+drag |
-| Select all | Ctrl+A |
-| Remove selected from the new sheet | Del (tab 2) |
+| Add to selection | Shift+click or Shift+drag (Mac: also ⌘+click) |
+| Select all | Ctrl+A (Mac: ⌘A) |
+| Remove selected from the new sheet | Del (tab 2, Mac: delete) |
 
 ### Language
 
@@ -245,9 +245,9 @@ Your browser's Do Not Track setting is respected.
 | 화면 이동 | 가운데 또는 오른쪽 버튼으로 드래그 |
 | 화면에 맞춤 | 더블클릭 또는 F |
 | 범위 선택 | 빈 곳을 드래그 |
-| 선택에 더하기 | Shift+클릭 또는 Shift+드래그 |
-| 전체 선택 | Ctrl+A |
-| 새 시트에서 선택 항목 빼기 | Del (2번 탭) |
+| 선택에 더하기 | Shift+클릭 또는 Shift+드래그 (맥: ⌘+클릭도 가능) |
+| 전체 선택 | Ctrl+A (맥: ⌘A) |
+| 새 시트에서 선택 항목 빼기 | Del (2번 탭, 맥: delete) |
 
 ### 언어
 
@@ -367,9 +367,9 @@ Your browser's Do Not Track setting is respected.
 | 画面の移動 | 中ボタンまたは右ボタンでドラッグ |
 | 画面に合わせる | ダブルクリックまたは F |
 | 範囲選択 | 空いている所をドラッグ |
-| 選択に追加 | Shift+クリックまたは Shift+ドラッグ |
-| すべて選択 | Ctrl+A |
-| 新シートから選択項目を外す | Del (2番タブ) |
+| 選択に追加 | Shift+クリックまたは Shift+ドラッグ (Mac: ⌘+クリックも可) |
+| すべて選択 | Ctrl+A (Mac: ⌘A) |
+| 新シートから選択項目を外す | Del (2番タブ、Mac: delete) |
 
 ### 言語
 

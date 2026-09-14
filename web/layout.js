@@ -332,7 +332,7 @@ function wireLayout() {
 
     const hit = hitPool(img[0], img[1]);
     if (hit >= 0) {
-      if (e.shiftKey || e.ctrlKey) {
+      if (e.shiftKey || e.ctrlKey || e.metaKey) {
         if (psel.has(hit)) psel.delete(hit);
         else psel.add(hit);
       } else if (!psel.has(hit)) {
@@ -346,7 +346,7 @@ function wireLayout() {
       return;
     }
 
-    if (!(e.shiftKey || e.ctrlKey)) psel = new Set();
+    if (!(e.shiftKey || e.ctrlKey || e.metaKey)) psel = new Set();
     drag2 = { mode: 'band', x: p[0], y: p[1] };
     renderPool();
   });
@@ -443,7 +443,8 @@ function wireLayout() {
   window.addEventListener('keydown', (e) => {
     if (tab !== 2) return;
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
-    if (e.key === 'Delete') removeSelectedPool();
+    // 맥 키보드의 delete 키는 Backspace 로 들어온다
+    if (e.key === 'Delete' || e.key === 'Backspace') removeSelectedPool();
     if (e.key === 'f' || e.key === 'F') { fitView2(); view2.fitted = true; renderPool(); }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
       e.preventDefault();
