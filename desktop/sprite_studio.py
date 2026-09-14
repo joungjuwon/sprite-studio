@@ -60,6 +60,10 @@ from spritecore import (
 
 APP_NAME = "Sprite Studio"
 
+IS_MAC = sys.platform == "darwin"
+# 선택에 더하는 키: Shift, 맥에서는 Command 도 (Tk 에서 Command 는 Mod1 = 0x0008)
+ADD_MASK = 0x0001 | (0x0008 if IS_MAC else 0)
+
 SETTINGS_PATH = os.path.join(os.path.expanduser("~"), ".sprite_studio.json")
 THUMB = 64
 
@@ -1512,7 +1516,7 @@ class SpriteStudio:
             self.canvas.config(cursor="")
             return
 
-        add = bool(event.state & 0x0001)                   # Shift 눌림
+        add = bool(event.state & ADD_MASK)                 # Shift (맥은 Command 도) 눌림
         i = self.box_at(event)
         if i is not None:
             if add:
@@ -1864,7 +1868,7 @@ class SpriteStudio:
     def on_layout_press(self, event):
         self.lcanvas.focus_set()
         i, ix, iy = self.hit_test(event)
-        add = bool(event.state & 0x0001)
+        add = bool(event.state & ADD_MASK)
 
         if i is None:                                   # 빈 곳 → 범위 선택 시작
             if not add:
@@ -1874,7 +1878,7 @@ class SpriteStudio:
             self.render_layout()
             return
 
-        if add:                                         # Shift+클릭 → 토글
+        if add:                                         # Shift/Command+클릭 → 토글
             self.sel ^= {i}
             self._drag = None
             self.render_layout()
@@ -2128,13 +2132,21 @@ def main():
         app = SpriteStudio(root, dnd, carry)
         app.relaunch = build
 
-        def on_del(_e):
+        def typing(e):
+            # 글자 입력 칸에서는 지우기·전체 선택·F 를 칸에 맡긴다
+            return isinstance(e.widget, (tk.Entry, tk.Spinbox, tk.Text, ttk.Entry))
+
+        def on_del(e):
+            if typing(e):
+                return
             if app.nb.index(app.nb.select()) == 1:
                 app.remove_selected()
             else:
                 app.drop_selected_boxes()
 
-        def on_all(_e):
+        def on_all(e):
+            if typing(e):
+                return
             if app.nb.index(app.nb.select()) == 1:
                 app.select_all_pool()
             else:
@@ -2144,7 +2156,12 @@ def main():
         root.bind("<Delete>", on_del)
         root.bind("<Control-a>", on_all)
         root.bind("<Control-A>", on_all)
-        root.bind("<f>", lambda e: app.fit_view(
+        if IS_MAC:
+            # 맥 키보드의 delete 키는 BackSpace 로 들어온다
+            root.bind("<BackSpace>", on_del)
+            root.bind("<Command-a>", on_all)
+            root.bind("<Command-A>", on_all)
+        root.bind("<f>", lambda e: None if typing(e) else app.fit_view(
             2 if app.nb.index(app.nb.select()) == 1 else 1))
         return app
 

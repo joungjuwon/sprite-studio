@@ -573,7 +573,7 @@ function wire() {
 
     const hit = hitBox(img[0], img[1]);
     if (hit >= 0) {
-      if (e.shiftKey || e.ctrlKey) {
+      if (e.shiftKey || e.ctrlKey || e.metaKey) {
         if (selected.has(hit)) selected.delete(hit);
         else selected.add(hit);
       } else {
@@ -583,7 +583,7 @@ function wire() {
       render();
       return;
     }
-    drag = { mode: 'band', x: p[0], y: p[1], add: e.shiftKey || e.ctrlKey };
+    drag = { mode: 'band', x: p[0], y: p[1], add: e.shiftKey || e.ctrlKey || e.metaKey };
   });
 
   window.addEventListener('mousemove', (e) => {
