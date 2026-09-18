@@ -43,10 +43,17 @@ Option panels on the right open and close when you click their title.
 
 ### 1. Extract sprites
 
-1. Drag one or more sheet images onto the window, or click **Add sheets…**.
+1. Drag sheet images onto the window, or click **Add sheets…**. You can add several at once.
    Each sheet appears as a thumbnail on the left. Click a thumbnail to switch sheets.
 2. Sprites are detected automatically and outlined in cyan. The number found is shown under the image.
 3. If the outlines are wrong, open **Extract options** and adjust. Results update as you move a slider.
+
+   **Undo (Ctrl+Z) / Redo (Ctrl+Y)** at the top right undo what you did on this tab:
+   extract option changes, excluded sprites, adding, removing and clearing sheets,
+   linking and unlinking atlas files, and applying settings to all sheets, up to 40 steps.
+   Everything that happens during one slider drag counts as a single step, so one undo
+   brings back the original value. **Each tab keeps its own history**; only the tab you
+   are looking at is undone.
 
    | Problem | Fix |
    |---|---|
@@ -56,14 +63,36 @@ Option panels on the right open and close when you click their title.
    | Background edges remain around sprites | Raise **Background tolerance** |
 
    These options apply to the selected sheet only. To use them everywhere, click **Apply these settings to all sheets**.
-4. To export only some sprites, click a sprite or drag across an empty area to select several.
+4. Detected sprites are listed **under their sheet** in the list on the left. Click the
+   **▸** at the bottom right of a sheet row to expand it, and again to collapse it. Each
+   entry shows a preview, number and size, with two buttons:
+
+   - **Save**: saves just that sprite as a PNG (the web app downloads it).
+   - **Show**: switches to tab 1, selects only that sprite and zooms in on it in the middle of the view.
+
+   **Drag an entry onto the tab 2 canvas or its tab header** to add just that sprite to the
+   new sheet. When a sheet has many sprites, the first 100 are shown and **… show N more**
+   at the bottom continues the list. Sheets you have exported at least once are marked **Extracted**.
+5. To export only some sprites, click a sprite or drag across an empty area to select several.
    Shift+click or Shift+drag adds to the selection. Selected sprites turn yellow.
-5. In **Crop and naming**, set how files are cut and named:
+   To drop sprites you don't need, select them and use **Exclude selected sprites** (Del).
+
+   Under **Numbering** you can choose the sprite numbers yourself. The number becomes the
+   file name (`prefix_003.png`) and the order in which sprites are placed in the new sheet.
+   - **Number in click order (N)**: turn it on and click sprites in the order you want;
+     they get 0, 1, 2 … If sprites are selected, numbering continues from the smallest of
+     their numbers. Press N or Esc to stop.
+   - **Renumber selected…** (or double-click a sprite): type a new number and the sprite
+     moves into that position; the numbers after it shift down by one.
+   - **Reset numbers**: goes back to the detection order.
+   - When you move a slider and sprites are detected again, each new sprite takes the
+     number of the nearest old one.
+6. In **Crop and naming**, set how files are cut and named:
    - **Padding (px)**: empty space around each sprite
    - **Pad all to equal squares**: every file gets the same square size
    - **Name prefix**: files are named `prefix_000.png`, `prefix_001.png`, …
    - **Save coordinates too** (web only): also writes a JSON file with each sprite's position in the sheet
-6. Click the large export button at the bottom right.
+7. Click the large export button at the bottom right.
    It exports the selected sprites if any are selected, otherwise all of them.
    - Web: `<prefix>_sprites.zip` is downloaded.
    - Desktop: choose an **Output folder** first.
@@ -82,7 +111,7 @@ Trimmed and rotated frames are restored to their original shape.
    - **Use the atlas file**: turn off to go back to pixel detection
    - **Restore trimmed size**: keeps the original frame size, including trimmed transparent space
    - **Flip rotation**: use this if rotated frames come out sideways
-3. Export the same way as in step 6 above.
+3. Export the same way as in step 7 of section 1.
 
 ### 3. Build a new sheet
 
@@ -90,20 +119,115 @@ Trimmed and rotated frames are restored to their original shape.
    - Drag a sheet thumbnail from the left onto the **2. Build sheet** tab.
    - On tab 1, under **Add to new sheet**, click **Add this sheet** or **Add all sheets**.
    - On tab 1, select sprites and click **Add selection only**.
+   - Drag a sprite entry from the list on the left onto tab 2.
    - On tab 2, click **Add images…** or drop separate image files.
 2. Open the **2. Build sheet** tab. Sprites are placed automatically.
-3. Arrange them:
-   - **Auto pack**: packs sprites tightly
-   - **Grid align**: lines sprites up in a grid, in their current on-screen order
+3. Organize the layout with **groups**.
+
+   Sprites are grouped by the sheet they came from (named `Group 1`, `Group 2` …; you can
+   rename them at any time), and each group takes **a full row of the sheet (a band)**.
+   Each group can have its own rule, so for example a walk sheet can use **Grid align**
+   and a face sheet **Auto pack**, combined into one sheet.
+
+   - **Group list**: right under the canvas. It shows each group's name · count · mode ·
+     cell size · pinned state. Click **▲ ▼** at the right of a row, or **drag it up or down**,
+     to change the order; the sheet is stacked in the same order (higher in the list means
+     higher in the sheet). Selecting a group selects its sprites on the canvas and loads its
+     layout options. Double-click it or press **Rename** to rename it.
+   - **Expand a group**: click the expand button at the left of a group to see its sprites
+     with previews, numbered 1, 2, 3 … Click a row to select just that sprite; use **▲ ▼**
+     to change the order inside the group, and the layout follows.
+   - **Names**: sprites in the new sheet are named like `Group name_000`, following their
+     order in the group. The names on screen match the frame names in the JSON.
+   - **Arrange in number order** (layout options, on by default): auto pack and grid align
+     follow the numbers set on tab 1. When off, auto pack packs tightly and grid align
+     follows the current positions. An order you set with ▲ ▼ in the list takes priority.
+   - **New group**: moves the selected sprites into a new group. Useful when a sheet mixes
+     walking frames and faces.
+   - **Merge**: joins the groups the selected sprites belong to.
+   - **Restack all**: lays everything out again from scratch in the current order and rules.
+   - **Undo (Ctrl+Z) / Redo (Ctrl+Y)**: undoes what you did on this tab: adding and removing
+     sprites, auto pack and grid align, creating, merging, renaming and reordering groups,
+     dragging, draw to place, and clearing the list, up to 40 steps.
+   - The **Auto pack / Grid align** buttons apply to the group selected in the list, or to
+     every group if none is selected.
+   - **Pinned**: a group you dragged sprites in, or used **Draw to place** on, is **pinned**.
+     Restacking keeps its shape (the drawn row or grid, the positions you dragged to). A pinned
+     group still takes its own row, so it **never overlaps another group**. Dragging a sprite
+     inside a grid group moves it one cell at a time, so the grid stays intact. Press **Unpin**
+     or a layout button again to lay the group out by its rule.
+   - Each group is drawn with a **grey outline** (dashed orange when pinned), so you can see
+     where each group begins and ends.
+
+   With several groups the whole sheet can't be sliced as one grid, so the **origin** of each
+   grid group is written to the log and the JSON. Set the grid start to that value in your
+   engine (Unity `Offset`, Unreal `Margin X/Y`, Godot `margins`) to slice just that group.
+   The purple cell lines are drawn only over grid groups.
+
+   Grid-group bands automatically **start at a multiple of the cell height**. Then
+   `start + row × cell height` is also a multiple, so even if the engine slices **from (0, 0)
+   with the same cell size** without moving the origin, that group's frames fall exactly on
+   cell boundaries. This helps most with Unity's `Grid By Cell Size`, which can't limit the
+   grid to a number of cells (just delete the empty slices from other groups). Unreal
+   (`Num Cells X/Y`) and Godot (picking tiles) let you limit the range yourself, so matching
+   the origin is enough.
+
+   - **Auto pack**: packs sprites tightly with no gaps.
+   - **Grid align**: makes every cell the same size and lines sprites up in order (number order
+     when **Arrange in number order** is on, otherwise their current on-screen order). Cells
+     start at the top left (0, 0) with no gaps and the sheet size is a multiple of the cell, so
+     when the engine **slices by cell size** (Unity's Grid By Cell Size, RPG Maker standard sheets
+     and so on) each cell holds exactly one sprite. After aligning, the cell size is shown in the
+     log and above the canvas, like **Cell 34×50**; enter that value in your engine. Cell borders
+     are drawn over the image as purple lines so you can check before exporting.
+   - **Draw to place**: drag with the **right** mouse button in the shape you want and sprites are
+     placed that way. The left button is always select and move. Cells snap to the grid that
+     starts at (0, 0) of the sheet. Drag sideways for one row, downward for one column, or draw a
+     wide box for a grid. Drawing backwards (right to left, bottom to top) places them in that
+     direction. If sprites are selected only those are placed, otherwise all of them. A dashed
+     preview is shown until you release.
+     - Cells use **the same settings as Grid align** (spacing, grid, align in cell, power of two).
+       The order you draw in becomes the order in the group (the name numbers).
+     - The cell size for the current settings is shown right under the options, like **Cell 48×64**.
    - Drag a sprite to move it. **Snap (px)** sets the step size.
    - Overlapping sprites are outlined in red.
 4. Adjust **Layout options** if needed:
    - **Max width**: the widest the sheet may get. Leave blank for automatic.
-   - **Spacing (px)**: gap between sprites
-   - **Round size to power of two**: sheet size becomes 256, 512, 1024, …
+   - **Spacing (px)**: the gap between sprites. In grid align the spacing is part of the cell,
+     so a cell is `largest sprite + spacing`.
+   - **Grid (px)**: rounds the cell size up to a multiple of this value. With 16 or 32 every frame
+     sits on that multiple, ready for tile-based engines. 0 turns it off and fits the cell to the
+     largest sprite. Used by both **Grid align** and **Draw to place**. **Round size to power of
+     two** takes priority when it is on.
+   - **Align in cell**: where a sprite sits inside its cell for grid align and draw to place.
+     Horizontally it is always centered; you choose the vertical position.
+     - **Center**: the middle of the cell. The default, and right for most cases.
+     - **Bottom**: against the bottom of the cell. Even when trimming makes frames different
+       heights, **the feet stay on one line**, so characters don't bob up and down in walk cycles.
+       This only makes sense if the feet are at a fixed height in the original, so use it together
+       with **Restore trimmed size** on tab 1.
+   - **Round size to power of two**: the sheet size becomes 256, 512, 1024 … Together with grid align
+     it **also rounds the cell up to a power of two**. If the cell is `2^a × m` (m odd), then
+     `columns × cell = 2^k` only holds when m is 1, so the grid only divides a power-of-two sheet
+     evenly when the cell itself is a power of two. A bigger cell also means a bigger file, so the
+     new value is written to the log when this happens. Turn the option off to keep the cell as is.
 5. Click **Export new sheet**.
    - Web: `packed_sheet.zip` is downloaded, containing `packed_sheet.png` and `packed_sheet.json`.
    - Desktop: choose where to save `packed_sheet.png`. The JSON is saved next to it.
+
+   Turn on **Split into one sheet per group** to save each group separately. The group name is
+   added to the file name, as in `packed_sheet_hero.png` + `packed_sheet_hero.json`,
+   `packed_sheet_faces.png` + …, with **one JSON for each PNG**. The format is the same as a
+   single sheet, so nothing changes on the engine side.
+
+   This way **each sheet holds only one grid**, so a grid group's PNG is a complete grid sheet
+   whose cells divide evenly from `(0, 0)` (`grid.whole` is `true`, `origin` is `(0, 0)`). You only
+   enter **the cell size** in the engine and never move the origin, which is the cleanest option in
+   all three engines. The only cost is having several files.
+
+   With **Round size to power of two** also on, each group is its own sheet when split, so **the cell
+   is rounded up to a power of two** as well. That keeps the grid even all the way across a
+   power-of-two sheet.
 
    The JSON lists every frame's position so a game engine can find it:
 
@@ -114,6 +238,35 @@ Trimmed and rotated frames are restored to their original shape.
      "frames": [
        { "name": "hero_000", "x": 0, "y": 0, "w": 32, "h": 48, "source": "hero" }
      ]
+   }
+   ```
+
+   With several groups a `groups` array is added. Each entry has the group's name, mode and origin,
+   the cell information if it is a grid, and the names of its frames.
+
+   ```json
+   "groups": [
+     { "name": "hero", "mode": "grid", "origin": { "x": 0, "y": 0 },
+       "grid": { "cell": { "w": 32, "h": 46 }, "cols": 16, "rows": 1, "whole": false },
+       "frames": ["hero_000", "hero_001"] },
+     { "name": "faces", "mode": "auto", "origin": { "x": 0, "y": 48 },
+       "frames": ["faces_000", "faces_001"] }
+   ]
+   ```
+
+   When the whole sheet is one grid, a `grid` entry is written. `origin` is where the grid starts,
+   and `whole` says whether the whole sheet is this grid. If it is false, only the group is a grid,
+   so move the origin in the engine and slice just that part. Engine importers don't have to work
+   the cell size out from the frame coordinates.
+
+   ```json
+   "grid": {
+     "cell": { "w": 34, "h": 50 },
+     "origin": { "x": 0, "y": 116 },
+     "cols": 18, "rows": 12,
+     "align": "bottom",
+     "spacing": 2,
+     "whole": false
    }
    ```
 
@@ -234,7 +387,7 @@ Your browser's Do Not Track setting is respected.
    - **좌표 파일 사용**: 끄면 픽셀 감지로 돌아갑니다
    - **트리밍 원래 크기로 복원**: 잘려 나간 투명 여백까지 포함해 원래 프레임 크기로 저장합니다
    - **회전 방향 반대로**: 회전된 프레임이 옆으로 누워 나오면 켭니다
-3. 위 1번 과정의 6단계와 같은 방법으로 내보냅니다.
+3. 위 1번 과정의 7단계와 같은 방법으로 내보냅니다.
 
 ### 3. 새 시트 만들기
 
@@ -242,6 +395,7 @@ Your browser's Do Not Track setting is respected.
    - 왼쪽 시트 썸네일을 **2. 새 시트 만들기** 탭으로 끌어다 놓습니다.
    - 1번 탭의 **새 시트에 추가** 에서 **이 시트 추가** 또는 **모든 시트 추가** 를 누릅니다.
    - 1번 탭에서 스프라이트를 고른 뒤 **선택만 추가** 를 누릅니다.
+   - 왼쪽 목록의 스프라이트 줄을 2번 탭으로 끌어다 놓습니다.
    - 2번 탭에서 **이미지 추가…** 를 누르거나 낱장 이미지 파일을 끌어다 놓습니다.
 2. **2. 새 시트 만들기** 탭을 엽니다. 스프라이트가 자동으로 배치되어 있습니다.
 3. **그룹** 으로 나누어 배치를 정리합니다.
@@ -296,7 +450,8 @@ Your browser's Do Not Track setting is respected.
    원점만 맞추면 됩니다.
 
    - **자동 배치**: 빈틈 없이 촘촘하게 채웁니다
-   - **격자 정렬**: 지금 화면에 놓인 순서대로 모든 칸을 같은 크기로 맞춰 줄 세웁니다.
+   - **격자 정렬**: 모든 칸을 같은 크기로 맞춰 차례로 줄 세웁니다 (**번호 순서대로 배치** 가
+     켜져 있으면 번호 순서, 꺼져 있으면 지금 화면에 놓인 순서).
      칸은 시트의 왼쪽 위 (0, 0) 에서 시작해 빈틈없이 이어지고 시트 크기도 칸의
      배수가 되므로, 엔진에서 **칸 크기로 잘라 쓰기**(Unity 의 Grid By Cell Size,
      RPG Maker 의 규격 시트 등) 를 하면 한 칸에 스프라이트가 하나씩 정확히
@@ -372,11 +527,11 @@ Your browser's Do Not Track setting is respected.
 
    ```json
    "groups": [
-     { "name": "hero.png", "mode": "grid", "origin": { "x": 0, "y": 0 },
+     { "name": "hero", "mode": "grid", "origin": { "x": 0, "y": 0 },
        "grid": { "cell": { "w": 32, "h": 46 }, "cols": 16, "rows": 1, "whole": false },
-       "frames": ["w00", "w01"] },
-     { "name": "faces.png", "mode": "auto", "origin": { "x": 0, "y": 48 },
-       "frames": ["f00", "f01"] }
+       "frames": ["hero_000", "hero_001"] },
+     { "name": "faces", "mode": "auto", "origin": { "x": 0, "y": 48 },
+       "frames": ["faces_000", "faces_001"] }
    ]
    ```
 
@@ -431,85 +586,208 @@ Your browser's Do Not Track setting is respected.
 
 ### Web アプリとデスクトップアプリ
 
-どちらも同じ検出・配置コードを使うので、結果は同じです。
+どちらも同じ検出・配置コードを使うため、結果は同じです。
 
 | | Web アプリ | デスクトップアプリ (Windows) |
 |---|---|---|
 | 起動 | [リンクを開きます](https://joungjuwon.github.io/sprite-studio/)。初回は数秒かかります | [`SpriteStudio.exe`](https://github.com/joungjuwon/sprite-studio/releases/latest) をダウンロードして実行します |
-| 保存 | `.zip` ファイルをダウンロード | 指定したフォルダーに保存 |
-| シートと同じ場所の座標ファイル | 手動で読み込み | 自動で関連付け |
-| 閉じた後のシート一覧 | 消えます | 次回起動時に復元 |
+| 保存 | `.zip` ファイルをダウンロードします | 指定したフォルダーに保存します |
+| シートの隣の座標ファイル | 自分で読み込みます | 自動で関連付けられます |
+| 閉じた後のシート一覧 | 消えます | 次回起動時に復元されます |
 
 対応画像: PNG, JPG, BMP, GIF, WEBP, TGA。
 対応座標ファイル: TexturePacker JSON, Sparrow/Starling XML, Cocos2d plist, libGDX atlas。
 
 右側のオプション欄は、タイトルをクリックすると開閉します。
 
-### 1. スプライトを抽出する
+### 1. スプライト抽出
 
-1. シート画像をウィンドウにドラッグするか、**シート追加…** を押します。複数枚まとめて追加できます。
+1. シート画像をウィンドウにドラッグ＆ドロップするか、**シート追加…** を押します。複数枚をまとめて追加できます。
    シートは左側にサムネイルで並び、サムネイルをクリックするとそのシートに切り替わります。
-2. スプライトが自動で検出され、水色の枠が表示されます。検出数は画像の下に表示されます。
-3. 枠が合わない場合は **抽出オプション** を開いて調整します。スライダーを動かすと結果がすぐ変わります。
+2. スプライトが自動で検出され、水色の枠が描かれます。検出数は画像の下に表示されます。
+3. 枠が合わない場合は **抽出オプション** を開いて調整します。スライダーを動かすとすぐに結果が変わります。
+
+   右上の **元に戻す (Ctrl+Z) / やり直す (Ctrl+Y)** で、このタブでの操作を元に戻せます。
+   抽出オプションの変更、スプライトの除外、シートの登録・削除・全消去、座標ファイルの
+   関連付け・解除、全シートへの適用まで 40 段階を記憶します。スライダーを一度ドラッグする
+   間の変化は 1 段階にまとめられ、一度元に戻すだけで元の値に戻ります。
+   **2 つのタブの履歴は別々です** — 今見ているタブの操作だけが元に戻ります。
 
    | 症状 | 調整 |
    |---|---|
-   | 1つのスプライトが複数の枠に分かれる | **断片を結合(px)** を上げる |
-   | 細かい点まで検出される | **最小の幅・高さ(px)** または **最小ピクセル数** を上げる |
-   | 背景が透明ではない | **単色背景** をオンにし、**スポイト** を押して画像の背景をクリック |
-   | スプライトの周りに背景色が残る | **背景色の許容範囲** を上げる |
+   | 1 つのスプライトが複数の枠に分かれる | **断片を結合(px)** を上げます |
+   | 細かい点まで拾ってしまう | **最小の幅・高さ(px)** または **最小ピクセル数** を上げます |
+   | 背景が透明でない | **単色背景** をオンにし、**スポイト** を押してから画像の背景をクリックします |
+   | スプライトの周りに背景色が残る | **背景色の許容範囲** を上げます |
 
-   これらのオプションは選択中のシートにのみ適用されます。全シートに使うには **この設定を全シートに適用** を押します。
-4. 一部だけを出力するには、スプライトをクリックするか、空いている所をドラッグして複数選択します。
-   Shift を押しながらクリックまたはドラッグすると選択に追加されます。選択されたスプライトは黄色になります。
-5. **切り出しとファイル名** で切り出し方と名前を決めます。
-   - **余白(px)**: スプライトの周りに残す空白
-   - **正方形でサイズを統一**: すべてのファイルを同じサイズの正方形にそろえる
-   - **名前の接頭辞**: ファイル名が `接頭辞_000.png`, `接頭辞_001.png` … になる
-   - **座標ファイルも保存** (Web のみ): シート内での各スプライトの位置を記した JSON も保存
-6. 右下の大きな出力ボタンを押します。
-   選択したスプライトがあればそれだけを、なければすべてを出力します。
-   - Web: `<接頭辞>_sprites.zip` がダウンロードされます。
+   これらのオプションは選択中のシートにだけ適用されます。全シートに使うには **この設定を全シートに適用** を押します。
+4. 検出されたスプライトは、左の一覧でそのシートの **下にぶら下がります。** シート行の右下の
+   **▸** を押すと開き、もう一度押すと閉じます。各項目にはプレビュー・番号・サイズが表示され、
+   2 つのボタンがあります。
+
+   - **保存**: そのスプライト 1 つだけをすぐに PNG で保存します (Web はダウンロードします)。
+   - **表示**: 1 番タブに移り、そのスプライトだけを選択して、画面中央に拡大表示します。
+
+   項目の行を **2 番タブの画面やタブ見出しにドラッグ＆ドロップすると**、そのスプライト 1 つだけが
+   新シートに入ります。スプライトが多いときは最初の 100 個まで表示し、一番下の
+   **… あと N 個を表示** で続きを開きます。一度でもファイルに書き出したシートには
+   **抽出済み** の表示が付きます。
+5. 一部だけ書き出すには、スプライトをクリックするか、空いている所をドラッグして複数選びます。
+   Shift を押しながらクリックやドラッグをすると選択に追加されます。選択されたスプライトは黄色になります。
+   不要なものは選んでから **選択したスプライトを除外** (Del) で一覧から外せます。
+
+   **番号付け** でスプライトの番号を自分で決められます。この番号がファイル名
+   (`prefix_003.png`) と、新シートで並ぶ順番になります。
+   - **クリック順に番号を付ける (N)**: オンにしてスプライトを好きな順にクリックすると 0, 1, 2 …
+     が付きます。選択しているものがあれば、その中で一番小さい番号から続けて付けます。N か Esc で終了します。
+   - **選択したものの番号を変更…** (またはスプライトをダブルクリック): 新しい番号を入力するとその位置に入り、
+     後ろの番号は 1 つずつずれます。
+   - **番号をリセット**: 検出された順に戻します。
+   - スライダーを動かして検出し直しても、位置が一番近いスプライトが番号を引き継ぎます。
+6. **切り出しとファイル名** で、切り出し方と名前を決めます。
+   - **余白(px)**: スプライトの周りに残す余白
+   - **正方形でサイズを統一**: すべてのファイルを同じサイズの正方形にそろえます
+   - **名前の接頭辞**: ファイル名が `接頭辞_000.png`, `接頭辞_001.png` … になります
+   - **座標ファイルも保存** (Web のみ): シート内での各スプライトの位置を記した JSON も保存します
+7. 右下の大きな書き出しボタンを押します。
+   選択したスプライトがあればそれだけを、なければすべてを書き出します。
+   - Web: `<接頭辞>_sprites.zip` をダウンロードします。
    - デスクトップ: 先に **保存フォルダー** を指定します。
 
-   **全シートを一括出力** は、登録されたすべてのシートをシートごとのフォルダーに分けて保存します。
+   **全シートを一括出力** は、登録したシートをすべてシートごとのフォルダーに分けて保存します。
 
 ### 2. 既存の座標ファイルを使う
 
-シートに座標ファイルが付いている場合は、ピクセル検出の代わりにその座標で切り出します。
-トリミングや回転がかかったフレームも元の形に戻します。
+シートと一緒に座標ファイルがある場合は、ピクセル検出の代わりにその座標で切り出します。
+トリミングや回転されたフレームも元の形に戻します。
 
 1. 座標ファイルを関連付けます。
    - デスクトップ: 画像と同じ名前で同じフォルダーに置いておくと (`hero.png` と `hero.json`)、シート追加時に自動で関連付けられます。
-   - Web: 先にシートを追加し、**座標ファイル (アトラス)** の **読み込み…** を押すか、座標ファイルをウィンドウにドラッグします。
+   - Web: 先にシートを追加し、**座標ファイル (アトラス)** で **読み込み…** を押すか、座標ファイルをウィンドウにドラッグ＆ドロップします。
 2. 結果を確認します。**座標ファイル (アトラス)** の中で:
    - **座標ファイルを使う**: オフにするとピクセル検出に戻ります
-   - **トリミングを元のサイズに復元**: 切り取られた透明な余白も含め、元のフレームサイズで保存します
-   - **回転方向を反転**: 回転したフレームが横向きになる場合にオンにします
-3. 上の手順 1 の 6 と同じ方法で出力します。
+   - **トリミングを元のサイズに復元**: 切り取られた透明な余白も含めて、元のフレームサイズで保存します
+   - **回転方向を反転**: 回転されたフレームが横向きに出る場合にオンにします
+3. 上の 1 の手順 7 と同じ方法で書き出します。
 
-### 3. 新しいシートを作る
+### 3. 新シート作成
 
 1. スプライトを集めます。次のどの方法でも構いません。
-   - 左のシートサムネイルを **2. 新シート作成** タブにドラッグする。
-   - 1番タブの **新シートに追加** で **このシートを追加** または **全シートを追加** を押す。
-   - 1番タブでスプライトを選択し、**選択分のみ追加** を押す。
-   - 2番タブで **画像を追加…** を押すか、個別の画像ファイルをドラッグする。
+   - 左のシートのサムネイルを **2. 新シート作成** タブにドラッグ＆ドロップします。
+   - 1 番タブの **新シートに追加** で **このシートを追加** または **全シートを追加** を押します。
+   - 1 番タブでスプライトを選んでから **選択分のみ追加** を押します。
+   - 左の一覧のスプライトの行を 2 番タブにドラッグ＆ドロップします。
+   - 2 番タブで **画像を追加…** を押すか、単体の画像ファイルをドラッグ＆ドロップします。
 2. **2. 新シート作成** タブを開きます。スプライトは自動で配置されています。
-3. 配置を整えます。
-   - **自動配置**: 隙間なく詰めて並べます
-   - **グリッド整列**: 今の画面上の並び順のまま、グリッドにそろえます
-   - スプライトはドラッグで移動できます。1回に動く幅は **スナップ(px)** で決めます。
-   - 重なっているスプライトは赤い枠で表示されます。
-4. 必要に応じて **配置オプション** を調整します。
-   - **最大幅**: シートの最大の横幅。空欄なら自動で決まります。
-   - **間隔(px)**: スプライト同士の間隔
-   - **2の累乗サイズに合わせる**: シートサイズを 256, 512, 1024 … にそろえる
+3. **グループ** に分けて配置を整えます。
+
+   スプライトは元のシートごとに **グループ** に自動でまとめられ (名前は `グループ 1`, `グループ 2`
+   … です。いつでも変更できます)、1 つのグループがシートの **横一列 (バンド)** を占めます。
+   グループごとに別のルールを設定できるので、たとえば歩きのシートは **グリッド整列**、
+   表情のシートは **自動配置** にして 1 枚にまとめられます。
+
+   - **グループ一覧**: 画面のすぐ下にあり、名前 · 個数 · 方式 · マスのサイズ · 固定の有無が
+     表示されます。行の右の **▲ ▼** を押すか **上下にドラッグ** すると順番が変わり、シートでも
+     その順に積まれます (一覧で上にあるものがシートでも上になります)。一覧で選ぶとそのグループの
+     スプライトが画面でも選択され、配置オプションがそのグループの値に変わります。ダブルクリックするか
+     **名前の変更** ボタンで名前を変えられます。
+   - **グループを開く**: グループの左の開くボタンを押すと、中のスプライトがプレビューと
+     1, 2, 3 … の順番で表示されます。行をクリックするとそのスプライトだけを選び、**▲ ▼** で
+     グループ内の順番を変えると配置もその順に変わります。
+   - **名前**: 新シートのスプライト名は `グループ名_000` のように、グループ内の順番に従います。
+     画面に表示される名前と座標 JSON のフレーム名は同じです。
+   - **番号順に配置** (配置オプション、既定でオン): 自動配置・グリッド整列が 1 番タブで付けた
+     番号順に従います。オフにすると、自動配置は隙間なく、グリッド整列は置かれた位置の順に並べます。
+     一覧の ▲ ▼ で自分で決めた順番は、このオプションより優先されます。
+   - **新しいグループ**: 画面で選んだスプライトを新しいグループに移します。
+     1 枚のシートに歩きと表情が混ざっているときに使います。
+   - **結合**: 選んだスプライトがまたがっているグループを 1 つにまとめます。
+   - **全体を積み直す**: 今の順番・ルールで最初から配置し直します。
+   - **元に戻す (Ctrl+Z) / やり直す (Ctrl+Y)**: このタブでの操作を元に戻します。
+     スプライトの追加・削除、自動配置・グリッド整列、グループの作成・結合・名前の変更・並べ替え、
+     ドラッグ移動、なぞって配置、一覧のクリアまで 40 段階を記憶します。
+   - **自動配置 / グリッド整列** ボタンは一覧で選んだグループに適用されます。
+     選んでいなければ全グループに適用されます。
+   - **固定**: スプライトをドラッグしたグループや **なぞって配置** したグループは **固定** され、
+     積み直してもそのグループ内の形 (なぞった列・グリッド、ドラッグした位置) がそのまま残ります。
+     固定されたグループも 1 列を占めるので、**他のグループと重なりません。** グリッドのグループ内で
+     スプライトをドラッグするとマス単位で移動し、グリッドが崩れません。**固定を解除** を押すか
+     配置ボタンをもう一度押すと、グループのルールで配置し直されます。
+   - 画面にはグループごとに **灰色の枠** (固定されたものはオレンジの点線) が描かれ、
+     どこまでが 1 つのグループかがわかります。
+
+   グループが複数あるとシート全体を 1 つのグリッドでは分けられないため、グリッドのグループごとに
+   **原点** をログと座標 JSON に書き出します。エンジンでグリッドの開始位置をその値にすると
+   (Unity `Offset`、Unreal `Margin X/Y`、Godot `margins`)、そのグループだけを切り出せます。
+   画面の紫のマス境界線も、グリッドのグループの上にだけ描かれます。
+
+   グリッドのグループのバンドは、**マスの高さの倍数の位置から始まるように** 自動で調整されます。
+   バンドの開始がマスの高さの倍数なら `開始 + 行 × マスの高さ` も倍数になるので、エンジンで
+   原点を動かさずに **(0, 0) から同じマスサイズで分けても**、そのグループのフレームがマス境界に
+   ぴったり収まります。グリッドの範囲をマス数で制限できない Unity の `Grid By Cell Size`
+   で特に役立ちます (他のグループの場所にできた空の断片を消すだけです)。
+   Unreal は `Num Cells X/Y`、Godot はタイルを選ぶ方法で範囲を自分で限定できるので、
+   原点を合わせるだけで済みます。
+
+   - **自動配置**: 隙間なくぎっしり並べます。
+   - **グリッド整列**: すべてのマスを同じサイズにそろえて順番に並べます (**番号順に配置** がオンなら
+     番号順、オフなら今画面に置かれている順)。マスはシートの左上 (0, 0) から隙間なく続き、シートの
+     サイズもマスの倍数になるので、エンジンで **マスのサイズで切り出す** (Unity の Grid By Cell Size、
+     RPG Maker の規格シートなど) と、1 マスに 1 つずつスプライトが正確に収まります。整列すると
+     マスのサイズがログと画面上部に **マス 34×50** のように表示されるので、その値をそのまま
+     エンジンに入力してください。マスの境界は画面に紫の線で重ねて表示されるので、書き出す前に
+     目で確認できます。
+   - **なぞって配置**: **右ボタン** で好きな形になぞると、その通りに置かれます。
+     左ボタンは常に選択と移動です。マスはシートの (0, 0) から続くグリッドに合わせられます。
+     横になぞると横一列、縦になぞると縦一列、広く四角になぞるとグリッドになります。
+     逆向き (右→左、下→上) になぞるとその向きに置かれます。
+     スプライトを選んでいれば選んだものだけ、なければ全部が対象です。
+     ボタンを離すまで点線でプレビューを表示します。
+     - マスは **グリッド整列と同じ設定** (間隔・グリッド・マス内の配置・2の累乗) で決まります。
+       なぞった順番がそのままグループ内の順番 (名前の番号) になります。
+     - 今の設定でマスがいくつになるかは、オプションのすぐ下に **マス 48×64** のように表示されます。
+   - スプライトをドラッグすると移動します。一度に動く間隔は **スナップ(px)** で決めます。
+   - 重なったスプライトは赤い枠で表示されます。
+4. 必要なら **配置オプション** を調整します。
+   - **最大幅**: シートの最大の横幅。空欄にすると自動で決めます。
+   - **間隔(px)**: スプライト同士の間隔。グリッド整列ではこの間隔までマスのサイズに含まれるため、
+     マスは `一番大きいスプライト + 間隔` になります。
+   - **グリッド (px)**: マスのサイズをこの値の倍数に切り上げます。16 や 32 を入れると
+     すべてのフレームがその倍数の位置に立つので、タイルベースのエンジンにそのまま入ります。
+     0 にすると切り上げをやめ、マスを一番大きいスプライトにぴったり合わせます。**グリッド整列** と
+     **なぞって配置** が共通で使います。**2の累乗サイズに合わせる** がオンの場合はそちらが優先されます。
+   - **マス内の配置**: グリッド整列・なぞって配置で、スプライトをマスのどこに置くかを決めます。
+     横は常に中央で、縦だけを選びます。
+     - **中央**: マスの真ん中。既定値で、ほとんどの場合に合います。
+     - **下**: マスの下側に寄せます。トリミングのせいでフレームごとに高さが違っても
+       **足の位置が一列にそろうので**、歩きのような動作でキャラクターが上下に揺れません。
+       元画像で足の高さが一定であることが前提なので、1 番タブの
+       **トリミングを元のサイズに復元** と一緒に使うのがおすすめです。
+   - **2の累乗サイズに合わせる**: シートのサイズを 256, 512, 1024 … にそろえます。
+     グリッド整列と一緒にオンにすると **マスのサイズも 2 の累乗に切り上げます**。マスを
+     `2^a × m` (m は奇数) とすると `列数 × マス = 2^k` は m が 1 のときにしか成り立たないため、
+     マス自体が 2 の累乗でなければ 2 の累乗のシートでグリッドが最後までぴったり割り切れないからです。
+     マスが大きくなるとその分容量も増えるので、切り上げが起きたときは変わった値をログに書きます。
+     マスをそのままにしたい場合はこのオプションをオフにしてください。
 5. **新シートとして出力** を押します。
-   - Web: `packed_sheet.png` と `packed_sheet.json` を含む `packed_sheet.zip` がダウンロードされます。
+   - Web: `packed_sheet.png` と `packed_sheet.json` が入った `packed_sheet.zip` をダウンロードします。
    - デスクトップ: `packed_sheet.png` の保存先を選ぶと、JSON がその隣に保存されます。
 
-   JSON には、ゲームエンジンがフレームを見つけられるよう各フレームの位置が記録されます。
+   **グループごとにシートを分ける** をオンにすると、グループをそれぞれ別に保存します。
+   `packed_sheet_hero.png` + `packed_sheet_hero.json`、`packed_sheet_faces.png` + … のように
+   グループ名が後ろに付き、**PNG 1 枚ごとに JSON が 1 つ** 対になって出ます。形式は 1 枚で
+   出すときとまったく同じなので、エンジン側で手を加える必要はありません。
+
+   こうすると **シート 1 枚にグリッドが 1 つだけ** になるので、グリッドのグループの PNG はそれ自体で
+   `(0, 0)` からマスがぴったり割り切れる完全なグリッドシートになります (`grid.whole` が `true`、
+   `origin` が `(0, 0)`)。エンジンには **マスのサイズだけ** を入力すればよく、原点を動かす必要がないので、
+   3 つのエンジンすべてで最もすっきりします。ファイルが複数になることだけが代償です。
+
+   **2の累乗サイズに合わせる** も一緒にオンにすると、分けて保存するときはグループ 1 つがそのまま
+   シート 1 枚になるので、**マスのサイズも 2 の累乗に切り上がります。** そうすることで 2 の累乗の
+   シートでグリッドが最後までぴったり割り切れます。
+
+   JSON には、ゲームエンジンがフレームを見つけられるように各フレームの位置が記されます。
 
    ```json
    {
@@ -518,6 +796,35 @@ Your browser's Do Not Track setting is respected.
      "frames": [
        { "name": "hero_000", "x": 0, "y": 0, "w": 32, "h": 48, "source": "hero" }
      ]
+   }
+   ```
+
+   グループが複数あると `groups` 配列も書き出されます。グループごとの名前・方式・原点と、
+   (グリッドなら) マスの情報、そして所属するフレーム名が入ります。
+
+   ```json
+   "groups": [
+     { "name": "hero", "mode": "grid", "origin": { "x": 0, "y": 0 },
+       "grid": { "cell": { "w": 32, "h": 46 }, "cols": 16, "rows": 1, "whole": false },
+       "frames": ["hero_000", "hero_001"] },
+     { "name": "faces", "mode": "auto", "origin": { "x": 0, "y": 48 },
+       "frames": ["faces_000", "faces_001"] }
+   ]
+   ```
+
+   シート全体が 1 つのグリッドのときは `grid` 項目が書き出されます。`origin` はグリッドが始まる
+   位置で、`whole` はシート全体がこのグリッドかどうかを表します。偽ならグループだけがグリッドなので、
+   エンジンで原点を動かしてその部分だけを切り出す必要があります。エンジン側のインポーターは
+   フレーム座標からマスのサイズを逆算しなくて済みます。
+
+   ```json
+   "grid": {
+     "cell": { "w": 34, "h": 50 },
+     "origin": { "x": 0, "y": 116 },
+     "cols": 18, "rows": 12,
+     "align": "bottom",
+     "spacing": 2,
+     "whole": false
    }
    ```
 
@@ -556,62 +863,67 @@ Web アプリでは、画像はブラウザの中だけで処理され、どこ�
 
 ### 网页版与桌面版
 
-两者结果相同，使用的是同一套检测与排列代码。
+两者使用同一套检测与排列代码，所以结果相同。
 
 | | 网页版 | 桌面版 (Windows) |
 |---|---|---|
 | 启动 | [打开链接](https://joungjuwon.github.io/sprite-studio/)。首次加载需要几秒钟 | 下载 [`SpriteStudio.exe`](https://github.com/joungjuwon/sprite-studio/releases/latest) 后运行 |
-| 保存 | 下载 `.zip` 文件 | 保存到你选择的文件夹 |
+| 保存 | 下载 `.zip` 文件 | 保存到你指定的文件夹 |
 | 图集旁的坐标文件 | 需要手动载入 | 自动关联 |
-| 关闭后的图集 | 清空 | 下次启动时恢复 |
+| 关闭后的图集列表 | 清空 | 下次启动时恢复 |
 
 支持的图片：PNG、JPG、BMP、GIF、WEBP、TGA。
 支持的坐标文件：TexturePacker JSON、Sparrow/Starling XML、Cocos2d plist、libGDX atlas。
 
-点击右侧选项面板的标题即可展开或收起。
+点击右侧选项栏的标题即可展开或收起。
 
 ### 1. 提取精灵
 
-1. 把一张或多张图集图片拖到窗口里，或点击 **添加图集…**。
-   每张图集会以缩略图显示在左侧，点击缩略图即可切换。
-2. 精灵会被自动检测，并用青色边框标出。检测到的数量显示在图片下方。
-3. 如果边框不对，打开 **提取选项** 调整。移动滑块时结果会立即更新。
+1. 把图集图片拖到窗口里，或点击 **添加图集…**。可以一次添加多张。
+   图集会以缩略图排列在左侧，点击缩略图即可切换到该图集。
+2. 精灵会被自动检测，并画上青色边框。检测到的数量显示在图片下方。
+3. 如果边框不对，打开 **提取选项** 进行调整。移动滑块时结果会立即改变。
 
-   | 问题 | 解决方法 |
+   右上角的 **撤销 (Ctrl+Z) / 重做 (Ctrl+Y)** 可以撤销此页中的操作。提取选项的修改、
+   排除精灵、添加·移除·清空图集、关联·解除坐标文件、应用到所有图集，最多记住 40 步。
+   拖动一次滑块期间的变化会合并为一步，只需撤销一次就能回到原来的值。
+   **两个页面的记录是分开的** —— 只会撤销当前所看页面的操作。
+
+   | 现象 | 调整 |
    |---|---|
    | 一个精灵被分成了好几个框 | 调高 **合并碎片(px)** |
-   | 检测到了细小的杂点 | 调高 **最小宽·高(px)** 或 **最少像素数** |
-   | 背景不是透明的 | 勾选 **纯色背景**，点击 **吸管**，再点击图片中的背景 |
-   | 精灵周围残留背景边缘 | 调高 **背景色容差** |
+   | 连细小的杂点也被检测到 | 调高 **最小宽·高(px)** 或 **最少像素数** |
+   | 背景不是透明的 | 打开 **纯色背景**，点击 **吸管**，再点击图片中的背景 |
+   | 精灵周围残留背景色 | 调高 **背景色容差** |
 
-   这些选项只应用于所选图集。要应用到全部，请点击 **将此设置应用到所有图集**。
-   在右上角的 **撤销 (Ctrl+Z) / 重做 (Ctrl+Y)** 可以撤销此页中的操作（最多 40 步）。
-   两个页面的记录是分开的。
-4. 检测到的精灵会挂在左侧列表中该图集的 **下方**。点击图集行右下角的 **▸** 展开。
-   每一行显示预览、编号和尺寸，并有两个按钮：
-   - **保存**：只把这一个精灵保存为 PNG（网页版为下载）。
+   这些选项只应用于所选图集。要用于所有图集，请点击 **将此设置应用到所有图集**。
+4. 检测到的精灵会在左侧列表中 **挂在该图集下方。** 点击图集行右下角的 **▸** 展开，
+   再点一次收起。每个子项显示预览·编号·尺寸，并有两个按钮：
+
+   - **保存**：只把这一个精灵立即保存为 PNG（网页版为下载）。
    - **查看**：切换到第 1 页，只选中这个精灵，并把它放大显示在画面中央。
 
-   把这一行 **拖到第 2 页的画面或标签上**，就只会把这一个精灵加入新图集。
+   把子项这一行 **拖到第 2 页的画面或标签上**，就只把这一个精灵加入新图集。
+   精灵较多时先显示前 100 个，点击最下方的 **… 再显示 N 个** 继续展开。
    导出过文件的图集会显示 **已提取**。
-5. 若只想导出一部分，点击精灵，或在空白处拖动框选多个。
-   按住 Shift 点击或拖动会追加选择。选中的精灵会变成黄色。
+5. 若只想导出一部分，点击精灵，或在空白处拖动选择多个。
+   按住 Shift 点击或拖动会追加到选择中。选中的精灵会变成黄色。
    不需要的精灵可以选中后用 **排除所选精灵** (Del) 从列表中去掉。
 
-   在 **编号** 中可以自己决定精灵的编号。编号就是文件名（`prefix_003.png`），
+   在 **编号** 中可以自己决定精灵的编号。这个编号就是文件名（`prefix_003.png`），
    也是在新图集中的排列顺序。
    - **按点击顺序编号 (N)**：打开后按想要的顺序点击精灵，就会依次编为 0、1、2 …
      若已有选中的精灵，则从其中最小的编号开始接着编。按 N 或 Esc 结束。
-   - **重新编号所选…**（或双击精灵）：输入新编号后插入到该位置，后面的编号依次后移。
+   - **重新编号所选…**（或双击精灵）：输入新编号后插入到该位置，后面的编号依次后移一位。
    - **重置编号**：恢复为检测顺序。
    - 移动滑块重新检测后，位置最接近的精灵会继承原来的编号。
-6. 在 **裁剪 · 文件名** 中设置裁剪方式和文件名：
+6. 在 **裁剪 · 文件名** 中设置裁剪方式和文件名。
    - **边距(px)**：精灵周围保留的空白
-   - **统一为正方形**：所有文件都做成同样大小的正方形
-   - **名称前缀**：文件名为 `prefix_000.png`、`prefix_001.png`、…
-   - **同时保存坐标文件**（仅网页版）：另外保存记录每个精灵在图集中位置的 JSON
+   - **统一为正方形**：把所有文件统一为同样大小的正方形
+   - **名称前缀**：文件名为 `前缀_000.png`、`前缀_001.png` …
+   - **同时保存坐标文件**（仅网页版）：同时保存记录每个精灵在图集中位置的 JSON
 7. 点击右下角的大导出按钮。
-   有选中的精灵时只导出所选，否则导出全部。
+   有选中的精灵时只导出所选，否则全部导出。
    - 网页版：下载 `<前缀>_sprites.zip`。
    - 桌面版：请先指定 **保存文件夹**。
 
@@ -619,101 +931,158 @@ Web アプリでは、画像はブラウザの中だけで処理され、どこ�
 
 ### 2. 使用现有的坐标文件
 
-如果图集附带坐标文件，会直接使用其中的帧坐标，而不是按像素检测。
-被裁剪或旋转的帧会恢复成原来的样子。
+如果图集附带坐标文件，会用其中的坐标来裁剪，而不是按像素检测。
+被裁剪（trim）或旋转过的帧也会恢复成原来的样子。
 
-1. 关联文件：
+1. 关联坐标文件。
    - 桌面版：把文件和图片用同样的名字放在同一文件夹（`hero.png` 和 `hero.json`），添加图集时会自动关联。
-   - 网页版：先添加图集，再打开 **坐标文件（图集数据）** 点击 **载入…**，或把坐标文件拖到窗口里。
-2. 在 **坐标文件（图集数据）** 中确认结果：
+   - 网页版：先添加图集，再在 **坐标文件（图集数据）** 中点击 **载入…**，或把坐标文件拖到窗口里。
+2. 确认结果。在 **坐标文件（图集数据）** 中：
    - **使用坐标文件**：关闭后改回像素检测
-   - **恢复裁剪前的原始尺寸**：保留包括被裁掉的透明区域在内的原始帧尺寸
-   - **反转旋转方向**：旋转过的帧方向颠倒时使用
-3. 按上面第 7 步的方法导出。
+   - **恢复裁剪前的原始尺寸**：连同被裁掉的透明边距一起，按原始帧尺寸保存
+   - **反转旋转方向**：旋转过的帧方向颠倒时打开
+3. 按上面第 1 节第 7 步的方法导出。
 
 ### 3. 制作新图集
 
-1. 收集精灵，以下任一方式都可以：
+1. 收集精灵。以下任一方式都可以：
    - 把左侧的图集缩略图拖到 **2. 制作新图集** 标签上。
    - 在第 1 页的 **加入新图集** 中点击 **添加此图集** 或 **添加所有图集**。
    - 在第 1 页选中精灵后点击 **仅添加所选**。
    - 把左侧列表中精灵的那一行拖到第 2 页。
-   - 在第 2 页点击 **添加图片…**，或直接拖入单张图片文件。
-2. 打开 **2. 制作新图集** 页，精灵已经自动排好。
+   - 在第 2 页点击 **添加图片…**，或拖入单张图片文件。
+2. 打开 **2. 制作新图集** 页。精灵已经自动排好。
 3. 用 **分组** 整理排列。
 
    精灵会按来源图集自动归入 **分组**（名称为 `分组 1`、`分组 2` …，可以随时修改），
-   一个分组占用图集的 **一整行**。每个分组可以用不同的规则，例如走路动画用
-   **网格对齐**、表情用 **自动排列**，再合并成一张。
+   一个分组占用图集的 **一整行（行带）**。每个分组可以设置不同的规则，例如走路的图集用
+   **网格对齐**、表情的图集用 **自动排列**，再合并成一张。
 
    - **分组列表**：在画面正下方，显示名称 · 数量 · 方式 · 格子大小 · 是否固定。
      点击行右侧的 **▲ ▼** 或 **上下拖动** 可以调整顺序，图集中也会按此顺序堆叠
-     （列表中靠上的在图集中也靠上）。在列表中选中分组后，画面中也会选中该组的精灵。
-     双击或点击 **重命名** 可以改名。
-   - **展开分组**：点击分组左侧的展开按钮，会显示组内精灵的预览和 1、2、3 … 顺序。
-     点击行只选中该精灵；用 **▲ ▼** 调整组内顺序，排列也会随之改变。
+     （列表中靠上的在图集中也靠上）。在列表中选中分组后，画面中也会选中该组的精灵，
+     排列选项会切换为该组的值。双击或点击 **重命名** 按钮可以改名。
+   - **展开分组**：点击分组左侧的展开按钮，会按 1、2、3 … 的顺序显示组内精灵及其预览。
+     点击某一行只选中该精灵；用 **▲ ▼** 调整组内顺序，排列也会随之改变。
    - **名称**：新图集中精灵的名称为 `分组名_000` 这种形式，按组内顺序编号。
      画面上显示的名称与坐标 JSON 中的帧名称一致。
-   - **按编号顺序排列**（排列选项，默认开启）：自动排列和网格对齐会按第 1 页设定的
-     编号顺序。关闭后，自动排列会尽量紧凑，网格对齐按当前位置顺序。
+   - **按编号顺序排列**（排列选项，默认开启）：自动排列·网格对齐会按第 1 页设定的编号顺序。
+     关闭后，自动排列会尽量紧凑，网格对齐按当前位置顺序。
      在列表中用 ▲ ▼ 手动调整的顺序优先于此选项。
    - **新建分组**：把画面中选中的精灵移到一个新分组。
-   - **合并**：把所选精灵所在的多个分组合并成一个。
-   - **全部重新堆叠**：按当前顺序和规则从头重新排列。
-   - **撤销 (Ctrl+Z) / 重做 (Ctrl+Y)**：撤销此页中的操作（最多 40 步）。
+     一张图集里混有走路和表情时使用。
+   - **合并**：把所选精灵所在的多个分组合并为一个。
+   - **全部重新堆叠**：按当前顺序·规则从头重新排列。
+   - **撤销 (Ctrl+Z) / 重做 (Ctrl+Y)**：撤销此页中的操作。添加·删除精灵、自动排列·网格对齐、
+     新建·合并·重命名·调整分组顺序、拖动移动、划线排列、清空列表，最多记住 40 步。
    - **自动排列 / 网格对齐** 按钮作用于列表中选中的分组；没有选中时作用于所有分组。
-   - **固定**：拖动过精灵或 **划线排列** 过的分组会被 **固定**，重新堆叠时组内形状
-     （划出的行列·网格、拖放的位置）保持不变。固定的分组也占用一整行，**不会与其他分组重叠**。
-     在网格分组内拖动精灵时按格子移动，网格不会被打乱。点击 **解除固定** 或再次点击
-     排列按钮，就会按分组规则重新排列。
-   - 画面中每个分组都有 **灰色边框**（固定的为橙色虚线），可以看出分组的范围。
+   - **固定**：拖动过精灵或 **划线排列** 过的分组会被 **固定**，重新堆叠时组内的形状
+     （划出的行列·网格、拖放的位置）保持不变。固定的分组也占用一整行，因此 **不会与其他分组重叠。**
+     在网格分组内拖动精灵时会按格子移动，网格不会被打乱。点击 **解除固定** 或再次点击排列按钮，
+     就会按分组规则重新排列。
+   - 画面中每个分组都画有 **灰色边框**（固定的为橙色虚线），可以看出一个分组的范围。
 
-   排列方式：
-   - **自动排列**：紧凑地排列精灵。
-   - **网格对齐**：把所有格子做成同样大小排成网格。格子从图集左上角 (0, 0) 开始无缝排列，
-     图集尺寸也是格子的整数倍，因此在引擎中 **按格子大小切分**（Unity 的 Grid By Cell Size、
-     RPG Maker 的规格图集等）时，每个格子正好放一个精灵。对齐后格子大小会以 **格子 34×50**
-     的形式显示在日志和画面上方，把这个值填到引擎里即可。格子边界会用紫色线显示。
-   - **划线排列**：用 **右键** 按想要的形状划线，精灵就会那样排列。左键始终用于选择和移动。
-     横向划线排成一行，纵向划线排成一列，划出较宽的方框则排成网格。反方向划线时也会按那个方向排列。
-     若已选中精灵只排列所选的，否则排列全部。松开之前会用虚线预览。
-     - 格子与 **网格对齐使用相同的设置**（间距·网格·格内对齐·2 的幂），并对齐到从 (0, 0) 开始的网格。
+   分组有多个时，整张图集无法按一个网格切分，因此会把每个网格分组的 **原点** 写入日志和坐标 JSON。
+   在引擎中把网格起始位置设为该值（Unity `Offset`、Unreal `Margin X/Y`、Godot `margins`），
+   就能只切出这个分组。画面上的紫色格子边界线也只画在网格分组上。
+
+   网格分组的行带会自动调整为 **从格子高度的整数倍位置开始**。行带起点是格子高度的倍数时，
+   `起点 + 行 × 格子高度` 也是倍数，所以即使在引擎中不移动原点、**从 (0, 0) 按同样的格子大小切分**，
+   该分组的帧也会正好落在格子边界上。这对无法按格子数量限制网格范围的 Unity `Grid By Cell Size`
+   特别有用（只需删除其他分组位置上产生的空切片）。Unreal 用 `Num Cells X/Y`、Godot 用选择图块的方式
+   可以自己限定范围，只需对齐原点即可。
+
+   - **自动排列**：紧密地排满，不留空隙。
+   - **网格对齐**：把所有格子统一为同样大小并按顺序排列（打开 **按编号顺序排列** 时按编号，
+     否则按当前画面上的位置顺序）。格子从图集左上角 (0, 0) 开始无缝排列，图集尺寸也是格子的
+     整数倍，因此在引擎中 **按格子大小切分**（Unity 的 Grid By Cell Size、RPG Maker 的规格图集等）时，
+     每个格子正好放一个精灵。对齐后格子大小会以 **格子 34×50** 的形式显示在日志和画面上方，
+     把这个值直接填到引擎中即可。格子边界会用紫色线叠加显示，导出前可以亲眼确认。
+   - **划线排列**：用 **右键** 按想要的形状划线，精灵就会那样排列。
+     左键始终用于选择和移动。格子会对齐到从图集 (0, 0) 开始的网格。
+     横向划线排成一行，纵向划线排成一列，划出较宽的方框则排成网格。
+     反方向（右→左、下→上）划线时会朝那个方向排列。
+     若已选中精灵只排列所选的，否则排列全部。
+     松开按键之前会用虚线预览。
+     - 格子由 **与网格对齐相同的设置**（间距·网格·格内对齐·2 的幂）决定。
        划线的顺序就是组内顺序（名称编号）。
-     - 当前设置下的格子大小会以 **格子 48×64** 的形式显示在选项下方。
+     - 当前设置下的格子大小会以 **格子 48×64** 的形式显示在选项正下方。
    - 拖动精灵即可移动。每次移动的步长由 **吸附(px)** 决定。
    - 相互重叠的精灵会用红色边框标出。
-4. 需要时调整 **排列选项**：
-   - **最大宽度**：图集的最大宽度，留空则自动决定。
-   - **间距(px)**：精灵之间的间距。网格对齐时间距也计入格子大小，格子为 `最大的精灵 + 间距`。
-   - **网格(px)**：把格子大小向上取为此值的倍数。填 16 或 32 后，所有帧都会落在该倍数的位置上。
-     0 为关闭。**网格对齐** 和 **划线排列** 共用此值。
-   - **格内对齐**：网格对齐和划线排列时精灵在格子里的位置。水平方向总是居中，只选择垂直方向。
-     - **居中**：格子正中间，默认值。
-     - **底部**：贴着格子底部。即使裁剪导致每帧高度不同，**脚底也在同一条线上**，
-       走路等动作中角色不会上下抖动。
-   - **尺寸取 2 的幂**：图集尺寸变为 256、512、1024 …。与网格对齐一起使用时，
-     **格子大小也会取 2 的幂**，这样在 2 的幂尺寸的图集中网格才能正好对齐到底。
+4. 需要时调整 **排列选项**。
+   - **最大宽度**：图集的最大宽度。留空则自动决定。
+   - **间距(px)**：精灵之间的间距。网格对齐时间距也计入格子大小，
+     所以格子为 `最大的精灵 + 间距`。
+   - **网格(px)**：把格子大小向上取为此值的倍数。填入 16 或 32 后，
+     所有帧都会位于该倍数的位置上，可以直接用于基于图块的引擎。
+     0 为关闭，格子正好贴合最大的精灵。**网格对齐** 和 **划线排列** 共用此值。
+     打开 **尺寸取 2 的幂** 时以其为准。
+   - **格内对齐**：网格对齐·划线排列时精灵放在格子里的什么位置。
+     水平方向总是居中，只选择垂直方向。
+     - **居中**：格子正中。默认值，适合大多数情况。
+     - **底部**：贴着格子底部。即使因裁剪导致每帧高度不同，**脚底也会在同一条线上**，
+       所以走路之类的动作中角色不会上下抖动。前提是原图中脚的高度一致，
+       因此建议与第 1 页的 **恢复裁剪前的原始尺寸** 一起使用。
+   - **尺寸取 2 的幂**：把图集尺寸调整为 256、512、1024 …。
+     与网格对齐一起打开时，**格子大小也会向上取为 2 的幂**。设格子为
+     `2^a × m`（m 为奇数），则 `列数 × 格子 = 2^k` 只在 m 为 1 时成立，
+     所以只有格子本身是 2 的幂，网格才能在 2 的幂尺寸的图集中一直整齐地排到底。
+     格子变大文件也会变大，因此发生向上取整时会把新的值写入日志。
+     若想保持格子不变，请关闭此选项。
 5. 点击 **导出为新图集**。
-   - 网页版：下载 `packed_sheet.zip`，其中包含 `packed_sheet.png` 和 `packed_sheet.json`。
-   - 桌面版：选择 `packed_sheet.png` 的保存位置，JSON 会保存在它旁边。
+   - 网页版：下载包含 `packed_sheet.png` 和 `packed_sheet.json` 的 `packed_sheet.zip`。
+   - 桌面版：选择 `packed_sheet.png` 的保存位置，JSON 会一起保存在它旁边。
 
-   JSON 中列出了每一帧的位置，游戏引擎可以据此找到每一帧：
+   打开 **每个分组单独成图** 后，每个分组会分别保存。文件名后会加上分组名，例如
+   `packed_sheet_hero.png` + `packed_sheet_hero.json`、`packed_sheet_faces.png` + …，
+   **每张 PNG 对应一个 JSON**。格式与导出为一张时完全相同，引擎端无需额外处理。
+
+   这样 **每张图集只有一个网格**，网格分组的 PNG 本身就是从 `(0, 0)` 开始格子整齐划分的完整网格图集
+   （`grid.whole` 为 `true`，`origin` 为 `(0, 0)`）。在引擎中 **只需填写格子大小**，无需移动原点，
+   在三种引擎中都最为简洁。唯一的代价是文件会变成多个。
+
+   同时打开 **尺寸取 2 的幂** 时，分开保存的每个分组本身就是一张图集，因此 **格子大小也会向上取为 2 的幂。**
+   这样网格才能在 2 的幂尺寸的图集中一直整齐地排到底。
+
+   JSON 中写有每一帧的位置，游戏引擎可以据此找到帧。
 
    ```json
    {
      "image": "packed_sheet.png",
      "size": { "w": 256, "h": 128 },
      "frames": [
-       { "name": "分组 1_000", "x": 0, "y": 0, "w": 32, "h": 48, "source": "hero" }
+       { "name": "hero_000", "x": 0, "y": 0, "w": 32, "h": 48, "source": "hero" }
      ]
    }
    ```
 
-   有多个分组时会一并写入 `groups` 数组，包含每个分组的名称·方式·原点、（网格分组的）
-   格子信息，以及所属的帧名称。整张图集是一个网格时会写入 `grid` 项。
+   分组有多个时会一并写入 `groups` 数组。包含每个分组的名称·方式·原点、
+   （网格分组的）格子信息，以及所属的帧名称。
 
-   打开 **每个分组单独成图** 后，每个分组分别保存为 `packed_sheet_分组名.png` + `.json`。
-   每张图集只有一个网格，在引擎中只需填写格子大小即可切分。
+   ```json
+   "groups": [
+     { "name": "hero", "mode": "grid", "origin": { "x": 0, "y": 0 },
+       "grid": { "cell": { "w": 32, "h": 46 }, "cols": 16, "rows": 1, "whole": false },
+       "frames": ["hero_000", "hero_001"] },
+     { "name": "faces", "mode": "auto", "origin": { "x": 0, "y": 48 },
+       "frames": ["faces_000", "faces_001"] }
+   ]
+   ```
+
+   整张图集是一个网格时会写入 `grid` 项。`origin` 是网格的起始位置，`whole` 表示整张图集是否
+   都是这个网格。为 false 时只有该分组是网格，需要在引擎中移动原点只切出那一部分。
+   引擎端的导入器无需根据帧坐标反推格子大小。
+
+   ```json
+   "grid": {
+     "cell": { "w": 34, "h": 50 },
+     "origin": { "x": 0, "y": 116 },
+     "cols": 18, "rows": 12,
+     "align": "bottom",
+     "spacing": 2,
+     "whole": false
+   }
+   ```
 
 ### 操作
 
