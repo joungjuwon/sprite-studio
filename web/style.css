@@ -34,6 +34,7 @@
 
 :root:lang(en) { --ui: "Segoe UI", system-ui, sans-serif; }
 :root:lang(ja) { --ui: Meiryo, "Yu Gothic", system-ui, sans-serif; }
+:root:lang(zh) { --ui: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif; }
 
 * { box-sizing: border-box; }
 
@@ -335,6 +336,14 @@ main {
 #lview { display: block; width: 100%; height: 100%; cursor: default; }
 #lview.dragging { cursor: move; }
 #lview.panning { cursor: grabbing; }
+#lview.placing { cursor: crosshair; }
+#view.numbering { cursor: crosshair; }
+
+/* 켜고 끄는 모드 단추 (클릭 순서 번호 매기기). 켜지면 색과 글자가 바뀐다 */
+button.mode { background: var(--sec-bg); color: var(--sec-fg); font-weight: 700; }
+button.mode.on { background: var(--big); border-color: var(--big); color: #fff; }
+button.mode.on:hover:not(:disabled) { background: var(--big-hover); color: #fff; }
+.place-title { font-weight: 700; margin: 8px 0 2px; }
 #lhint {
   position: absolute;
   inset: 0;
@@ -354,3 +363,72 @@ label.nw { width: 74px; flex: none; font-size: 12px; }
 #opts2 input[type=text], #opts2 input[type=number] { width: 68px; }
 .sheet-row[draggable] { user-select: none; }
 .tab.drop-on { background: var(--accent); color: #10242a; }
+
+/* --------------------------------------- 캔버스 아래 그룹(밴드) 목록 */
+#gbar { margin-top: 6px; flex: none; }
+#ghead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+#gundo { margin-left: auto; display: flex; gap: 4px; flex: none; }
+#gundo button { font-size: 11px; padding: 2px 8px; }
+#ghead strong { font-size: 12px; }
+#glist {
+  list-style: none; margin: 0; padding: 2px; height: 150px; overflow-y: auto;
+  background: var(--bg-row); border: 1px solid #555; color: var(--fg-text);
+  border-radius: 4px; user-select: none;
+}
+/* 그룹 줄: [펼침] 이름 ………… [▲][▼]  /  스프라이트 줄: [미리보기] 번호 … [▲][▼] */
+#glist li {
+  display: flex; align-items: center; gap: 4px;
+  padding: 1px 4px; font-size: 12px; border-radius: 3px; min-height: 26px;
+}
+#glist li.grow { cursor: grab; font-weight: 700; }
+#glist li.gchild { background: var(--bg-dark); margin-left: 18px; cursor: pointer;
+                   color: var(--fg-dim); font: 11px var(--mono); }
+#glist li:hover { background: rgba(255, 255, 255, .06); }
+#glist li.on { background: var(--bg-sel); color: #fff; }
+#glist li.drag { opacity: .5; }
+#glist canvas { width: 26px; height: 26px; flex: none; image-rendering: pixelated; }
+.gname, .gnum { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden;
+                text-overflow: ellipsis; }
+#glist button {
+  flex: none; padding: 0; width: 26px; height: 22px; line-height: 1;
+  background: transparent; color: var(--fg-text); border: 1px solid #5c6166;
+  border-radius: 3px; font-size: 11px;
+}
+#glist button.gtog { width: 18px; border-color: transparent; color: var(--accent); }
+#glist button:hover:not(:disabled) { background: var(--bg-sel); border-color: var(--accent);
+                                     color: #fff; }
+#gbtns { display: flex; gap: 4px; margin-top: 4px; }
+#gbtns button { flex: 1; }
+
+/* ------------------------------------------- 1번 탭 머리글 + 되돌리기 */
+#thead { display: flex; align-items: center; gap: 8px; }
+#thead #title { flex: 1; }
+#tundo { display: flex; gap: 4px; flex: none; }
+#tundo button { font-size: 11px; padding: 2px 8px; }
+
+/* ------------------------------ 목록에 달리는 추출된 스프라이트(하위 항목) */
+/* 오른쪽 좁은 칸에 × 와 펼침 삼각형을 세로로 둔다. 가로로 늘어놓으면
+   이름·크기·개수가 들어갈 자리를 뺏어 글자가 세로로 쪼개진다. */
+.sheet-side { flex: none; display: flex; flex-direction: column;
+              align-items: center; justify-content: space-between; align-self: stretch; }
+.sheet-mark { color: var(--accent); cursor: pointer; font-size: 12px; line-height: 1; }
+.sheet-done { color: var(--sel); font-size: 10px; }
+.child-row {
+  display: flex; align-items: center; gap: 4px;
+  margin: 1px 3px 1px 16px; padding: 1px 2px; border-radius: 3px; cursor: pointer;
+}
+.child-row:hover { background: var(--bg-row); }
+.child-row img { width: 26px; height: 26px; image-rendering: pixelated; flex: none; }
+.child-name { flex: 1; color: var(--fg-dim); font: 11px var(--mono); overflow: hidden;
+              white-space: nowrap; text-overflow: ellipsis; }
+/* 하위 항목 줄의 [저장] [보기] 단추 */
+.child-btn {
+  flex: none; padding: 0 5px; font-size: 11px; line-height: 18px;
+  background: var(--bg-row); color: var(--fg-text); border: 1px solid #5c6166;
+}
+.child-btn:hover:not(:disabled) { background: var(--bg-sel); border-color: var(--accent);
+                                  color: #fff; }
+.child-row[draggable] { user-select: none; }
+.child-more { color: var(--accent); font-size: 11px; cursor: pointer;
+              margin: 2px 3px 4px 18px; }
+.child-empty { color: var(--fg-dim); font-size: 11px; margin: 2px 3px 4px 18px; }

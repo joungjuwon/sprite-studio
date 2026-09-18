@@ -157,6 +157,38 @@ def sort_reading_order(boxes):
     return ordered
 
 
+def move_in_order(order, picked, start):
+    """사용자가 매긴 번호 순서에서 `picked` 를 `start` 번 자리부터 차례로 끼워 넣는다.
+
+    `order` 는 상자 번호를 번호 순으로 늘어놓은 목록. 번호는 늘 0 부터 빈틈없이
+    이어지고, 끼어든 자리 뒤의 것들은 하나씩 밀린다. 고른 것끼리는 지금 순서를
+    지킨다.
+    """
+    moving = [i for i in order if i in picked]
+    rest = [i for i in order if i not in picked]
+    start = max(0, min(int(start), len(rest)))
+    return rest[:start] + moving + rest[start:]
+
+
+def carry_order(ref, boxes):
+    """다시 감지한 상자들에 예전 번호 순서를 물려준다. 반환: 새 순서 또는 None.
+
+    `ref` 는 예전 상자들을 번호 순서로 늘어놓은 목록. 슬라이더를 조금 움직이면
+    상자가 몇 픽셀씩 바뀌거나 합쳐지는데, 그때마다 번호가 감지 순서로 돌아가면
+    다시 매겨야 한다. 새 상자마다 중심이 가장 가까운 예전 상자의 번호를 물려받고,
+    같은 번호를 물려받은 것끼리는 감지 순서를 따른다. 감지 순서와 같아지면 None.
+    """
+    if not ref or not boxes:
+        return None
+    rc = np.array([((b[0] + b[2]) / 2, (b[1] + b[3]) / 2) for b in ref])
+    keys = []
+    for j, b in enumerate(boxes):
+        d = (rc[:, 0] - (b[0] + b[2]) / 2) ** 2 + (rc[:, 1] - (b[1] + b[3]) / 2) ** 2
+        keys.append((int(np.argmin(d)), j))
+    order = [j for _, j in sorted(keys)]
+    return None if order == list(range(len(boxes))) else order
+
+
 def detect_boxes(img, bg_color=None, tol=10, merge=0, min_area=4, min_size=2):
     """이미지에서 스프라이트 경계 상자들을 찾아 읽는 순서로 반환."""
     mask = build_mask(img, bg_color, tol)

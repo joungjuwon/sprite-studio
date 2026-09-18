@@ -27,6 +27,7 @@
         <option value="ko">한국어</option>
         <option value="en">English</option>
         <option value="ja">日本語</option>
+        <option value="zh">简体中文</option>
       </select>
     </div>
 
@@ -55,7 +56,13 @@
       <button class="tab" id="tab2" data-s="  2. 새 시트 만들기  ">2. 새 시트 만들기</button>
     </div>
     <div class="tab-body" id="body1">
-      <div id="title" data-s="시트를 등록하세요">시트를 등록하세요</div>
+      <div id="thead">
+        <div id="title" data-s="시트를 등록하세요">시트를 등록하세요</div>
+        <span id="tundo">
+          <button id="t-undo" data-s="되돌리기 (Ctrl+Z)" disabled>되돌리기 (Ctrl+Z)</button>
+          <button id="t-redo" data-s="다시 실행 (Ctrl+Y)" disabled>다시 실행 (Ctrl+Y)</button>
+        </span>
+      </div>
       <div id="stage">
         <canvas id="view"></canvas>
         <div id="drop-hint"><span data-s="\n시트를 여기로\n끌어다 놓으세요\n">시트를 여기로<br>끌어다 놓으세요</span></div>
@@ -70,6 +77,27 @@
         <div id="lhint"><span></span></div>
       </div>
       <div id="lstatus" data-s="스프라이트를 추가하고 자동 배치를 눌러보세요">스프라이트를 추가하고 자동 배치를 눌러보세요</div>
+
+      <!-- 캔버스 아래: 그룹 목록. 배치의 중심이라 늘 보이는 자리에 둔다.
+         그룹을 펼치면 들어 있는 스프라이트가 자식 줄로 보이고, 줄마다 ▲▼ 로 순서를 바꾼다 -->
+      <div id="gbar">
+        <div id="ghead">
+          <strong id="glabel" data-s="그룹">그룹</strong>
+          <span class="note inline" data-s="그룹을 펼치면 들어 있는 스프라이트가 보입니다 · 위아래로 끌어 순서 바꾸기 · 두 번 누르면 이름 바꾸기">그룹을 펼치면 들어 있는 스프라이트가 보입니다 · 위아래로 끌어 순서 바꾸기 · 두 번 누르면 이름 바꾸기</span>
+          <span id="gundo">
+            <button id="g-undo" data-s="되돌리기 (Ctrl+Z)" disabled>되돌리기 (Ctrl+Z)</button>
+            <button id="g-redo" data-s="다시 실행 (Ctrl+Y)" disabled>다시 실행 (Ctrl+Y)</button>
+          </span>
+        </div>
+        <ul id="glist"></ul>
+        <div id="gbtns">
+          <button id="g-split" data-s="새 그룹 만들기">새 그룹 만들기</button>
+          <button id="g-merge" data-s="합치기">합치기</button>
+          <button id="g-rename" data-s="이름 바꾸기">이름 바꾸기</button>
+          <button id="g-unpin" data-s="고정 풀기">고정 풀기</button>
+          <button id="g-restack" data-s="전체 다시 쌓기">전체 다시 쌓기</button>
+        </div>
+      </div>
     </div>
     <pre id="log"></pre>
   </section>
@@ -169,7 +197,22 @@
             <button id="sel-all" data-s="전체 선택">전체 선택</button>
             <button id="sel-none" data-s="선택 해제">선택 해제</button>
           </div>
+          <button id="drop-sel" class="wide" data-s="선택한 스프라이트 제외">선택한 스프라이트 제외</button>
           <button id="add-sel" class="wide" data-s="선택만 추가">선택만 추가</button>
+        </div>
+      </div>
+
+      <div class="sec" data-key="number">
+        <div class="sec-head">
+          <span class="mark">▸</span>
+          <span class="sec-title" data-s="번호 매기기">번호 매기기</span>
+        </div>
+        <div class="sec-body">
+          <p class="note" data-s="번호가 파일 이름이 되고, 새 시트에서 '번호 순서대로 배치' 를 켜 두면 자동 배치·격자 정렬도 이 순서를 따릅니다">번호가 파일 이름이 되고, 새 시트에서 '번호 순서대로 배치' 를 켜 두면 자동 배치·격자 정렬도 이 순서를 따릅니다</p>
+          <!-- 켜고 끄는 모드. 켜지면 색과 글자가 바뀐다 -->
+          <button id="num-mode" class="wide mode" data-s="클릭 순서로 번호 매기기 (N)">클릭 순서로 번호 매기기 (N)</button>
+          <button id="num-set" class="wide" data-s="선택한 것 번호 바꾸기…">선택한 것 번호 바꾸기…</button>
+          <button id="num-reset" class="wide" data-s="번호 초기화 (감지 순서)">번호 초기화 (감지 순서)</button>
         </div>
       </div>
 
@@ -206,6 +249,19 @@
             <input type="number" id="spacing" min="0" max="32" value="2">
           </div>
           <div class="row">
+            <label class="nw" for="pgrid" data-s="격자(px)">격자(px)</label>
+            <input type="number" id="pgrid" min="0" max="256" value="0">
+            <span class="note inline" data-s="칸 크기를 이 배수로 (0이면 끔)">칸 크기를 이 배수로 (0이면 끔)</span>
+          </div>
+          <div class="row">
+            <label class="nw" for="align" data-s="칸 안 정렬">칸 안 정렬</label>
+            <select id="align">
+              <option value="center" data-s="가운데">가운데</option>
+              <option value="bottom" data-s="아래">아래</option>
+            </select>
+            <span class="note inline" data-s="바닥 맞춤">바닥 맞춤</span>
+          </div>
+          <div class="row">
             <label class="nw" for="snap" data-s="스냅(px)">스냅(px)</label>
             <input type="number" id="snap" min="1" max="64" value="1">
             <span class="note inline" data-s="드래그 이동 단위">드래그 이동 단위</span>
@@ -214,8 +270,15 @@
             <span data-s="2의 거듭제곱 크기로 맞춤">2의 거듭제곱 크기로 맞춤</span></label>
           <label class="cb"><input type="checkbox" id="shownames" checked>
             <span data-s="이름 표시">이름 표시</span></label>
+          <label class="cb"><input type="checkbox" id="numorder" checked>
+            <span data-s="번호 순서대로 배치">번호 순서대로 배치</span></label>
+          <p class="note" data-s="자동 배치·격자 정렬이 추출 탭에서 매긴 번호 순서를 따릅니다. 끄면 자동 배치는 빈틈이 적게, 격자 정렬은 놓인 자리 순서로 채웁니다">자동 배치·격자 정렬이 추출 탭에서 매긴 번호 순서를 따릅니다. 끄면 자동 배치는 빈틈이 적게, 격자 정렬은 놓인 자리 순서로 채웁니다</p>
           <button id="auto-pack" class="wide" data-s="자동 배치">자동 배치</button>
           <button id="grid-pack" class="wide" data-s="격자 정렬">격자 정렬</button>
+          <p class="note" data-s="모든 칸을 같은 크기로 맞추고 시트도 칸의 배수로 만듭니다. 엔진에서 칸 크기로 잘라 쓸 때 쓰세요">모든 칸을 같은 크기로 맞추고 시트도 칸의 배수로 만듭니다. 엔진에서 칸 크기로 잘라 쓸 때 쓰세요</p>
+          <p class="place-title" data-s="그어서 배치 (오른쪽 드래그)">그어서 배치 (오른쪽 드래그)</p>
+          <p class="note" data-s="오른쪽 버튼으로 가로로 그으면 가로 한 줄, 세로로 그으면 세로 한 줄, 넓게 상자로 그으면 격자로 놓입니다. 고른 것이 있으면 그것만 놓습니다. 칸은 격자 정렬과 같은 설정(간격·격자·칸 안 정렬·2의 거듭제곱)으로 정해집니다">오른쪽 버튼으로 가로로 그으면 가로 한 줄, 세로로 그으면 세로 한 줄, 넓게 상자로 그으면 격자로 놓입니다. 고른 것이 있으면 그것만 놓습니다. 칸은 격자 정렬과 같은 설정(간격·격자·칸 안 정렬·2의 거듭제곱)으로 정해집니다</p>
+          <p id="place-cell" class="pool-count"></p>
         </div>
       </div>
 
@@ -242,6 +305,9 @@
           <label class="cb"><input type="checkbox" id="with-atlas" checked>
             <span data-s="좌표 JSON 파일">좌표 JSON 파일</span></label>
           <p class="note" data-s="엔진에서 프레임 위치를 읽을 때 필요합니다">엔진에서 프레임 위치를 읽을 때 필요합니다</p>
+          <label class="cb"><input type="checkbox" id="split-groups">
+            <span data-s="그룹마다 시트 나누기">그룹마다 시트 나누기</span></label>
+          <p class="note" data-s="그룹을 각각 따로 저장합니다. 시트 한 장에 격자가 하나뿐이 되므로 엔진에서 칸 크기만 적으면 그대로 잘립니다">그룹을 각각 따로 저장합니다. 시트 한 장에 격자가 하나뿐이 되므로 엔진에서 칸 크기만 적으면 그대로 잘립니다</p>
         </div>
       </div>
 
