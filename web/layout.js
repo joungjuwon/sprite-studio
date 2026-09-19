@@ -80,17 +80,22 @@ function cellOffset(cell, size, spacing, align) {
   return [x, Math.floor((cell[1] - size[1]) / 2)];
 }
 
+// 그은 길이에 들어가는 칸 수. 반 칸을 넘기면 한 칸으로 친다 (최소 1)
+function dragCount(extent, cell) {
+  return cell > 0 ? Math.max(1, Math.floor(extent / cell + 0.5)) : 1;
+}
+
 function dragGrid(sizes, start, end, spacing, grid, pot) {
   const n = sizes.length;
   if (!n) return [0, 0, true];
   const [cw, ch] = dragCell(sizes, spacing, grid, pot);
   const dx = Math.abs(end[0] - start[0]);
   const dy = Math.abs(end[1] - start[1]);
-  const horizontal = dx >= dy;
+  const horizontal = dx * ch >= dy * cw;          // 칸 단위로 비교
   const [majorLen, minorLen] = horizontal ? [dx, dy] : [dy, dx];
   const [majorCell, minorCell] = horizontal ? [cw, ch] : [ch, cw];
-  const fits = (extent, cell) => Math.max(1, Math.floor((extent + spacing) / cell));
-  const wrap = fits(minorLen, minorCell) === 1 ? n : Math.min(n, fits(majorLen, majorCell));
+  const wrap = dragCount(minorLen, minorCell) === 1 ? n
+    : Math.min(n, dragCount(majorLen, majorCell));
   return [wrap, Math.ceil(n / wrap), horizontal];
 }
 
@@ -947,9 +952,16 @@ function wireLayout() {
         const moves = moved.map((st) => [st.i, P.items[st.i].x, P.items[st.i].y]);
         if (moves.every((m, k) => m[1] === moved[k].x && m[2] === moved[k].y)) return;
         const o = opts2();
+        // 위로 끌어 올린 그룹은 순서가 바뀌므로, 고른 그룹을 번호가 아닌 스프라이트로 기억한다
+        const gs = P.sheet.groups || [];
+        const mark = gsel >= 0 && gs[gsel] ? gs[gsel].items[0] : -1;
         // 옮긴 그룹은 모양을 지킨 채 다시 쌓여 다른 그룹과 겹치지 않는다
         await syncPool(JSON.parse(bridge.pool_move(moves, o.pot, o.spacing, o.width, o.split)),
                        false);
+        if (mark >= 0) {
+          gsel = (P.sheet.groups || []).findIndex((g) => g.items.includes(mark));
+          renderGroups();
+        }
       } catch (err) { fail(err); }
     }
   });

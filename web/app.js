@@ -741,7 +741,6 @@ function exportAll() {
 /* ------------------------------------------------------------------ 입력 */
 let drag = null;
 let band = null;
-let eyedropping = false;
 
 function hitBox(ix, iy) {
   const boxes = S.sheet ? S.sheet.boxes : [];
@@ -757,13 +756,6 @@ function canvasPos(e) {
   const r = c.getBoundingClientRect();
   return [(e.clientX - r.left) * (c.width / r.width),
           (e.clientY - r.top) * (c.height / r.height)];
-}
-
-function setEyedrop(on) {
-  eyedropping = on;
-  $('view').classList.toggle('eyedropping', on);
-  if (on) $('status').textContent = s('배경으로 쓸 픽셀을 클릭하세요');
-  else render();
 }
 
 function selectAll() {
@@ -793,17 +785,6 @@ function wire() {
     if (!S.sheet) return;
     const p = canvasPos(e);
     const img = toImg(p[0], p[1]);
-
-    if (eyedropping && e.button === 0) {
-      try {
-        const rgb = JSON.parse(bridge.pick_color(S.active, img[0], img[1]));
-        $('bg').value = rgbToHex(rgb);
-        $('use-bg').checked = true;
-        setEyedrop(false);
-        pushOpts(0);
-      } catch (err) { fail(err); }
-      return;
-    }
 
     if (e.button === 1 || e.button === 2) {
       drag = { mode: 'pan', x: p[0], y: p[1] };
@@ -966,7 +947,6 @@ function wire() {
     $('use-bg').checked = true;
     pushOpts(0);
   });
-  $('eyedrop').addEventListener('click', () => setEyedrop(!eyedropping));
   $('rerun').addEventListener('click', () => pushOpts(0));
   $('apply-all').addEventListener('click', () => {
     try {

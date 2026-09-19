@@ -30,6 +30,7 @@ from spritecore import (
     drag_cell,
     drag_cells,
     drag_positions,
+    band_order,
     block_size,
     grid_layout,
     group_layout,
@@ -381,14 +382,6 @@ def apply_to_all(index):
     return json.dumps(_state())
 
 
-def pick_color(index, x, y):
-    """스포이트 — 그 자리 픽셀 색."""
-    img = _get(index)["img"]
-    x = max(0, min(img.width - 1, int(x)))
-    y = max(0, min(img.height - 1, int(y)))
-    return json.dumps(list(img.getpixel((x, y))[:3]))
-
-
 # ------------------------------------------------------------------ 좌표 파일
 def load_atlas(index, data, filename):
     """좌표 파일을 읽어 프레임대로 상자를 잡는다."""
@@ -541,7 +534,7 @@ KEYS = [
     "좌표 파일 (아틀라스)", "없음 - 픽셀로 자동 감지 중", "불러오기…", "해제",
     "좌표 파일 사용", "트리밍 원래 크기로 복원", "회전 방향 반대로 (그림이 뒤집혀 나올 때)",
     "추출 옵션", "추출", "선택한 시트에만 적용됩니다", "조각 합치기(px)",
-    "최소 가로·세로(px)", "최소 픽셀 수", "단색 배경", "색", "스포이트",
+    "최소 가로·세로(px)", "최소 픽셀 수", "단색 배경", "색",
     "배경색 허용 범위", "이 설정을 모든 시트에 적용",
     "잘라내기 · 파일 이름", "여백(px)", "정사각형으로 크기 통일", "이름 접두어",
     "이름 접두어로 하위 폴더 만들기",
@@ -549,7 +542,7 @@ KEYS = [
     "저장 폴더", "내보내기", "개별 이미지로 내보내기", "선택 {a0}개 내보내기",
     "모든 시트 한 번에 내보내기", "시트를 등록하고 추출하면 내보낼 수 있습니다",
     "좌표 파일 함께 저장", "스프라이트 {a0}개", "내보낼 스프라이트가 없습니다.",
-    "{a0}개 감지됨", "분석 중…", "배경으로 쓸 픽셀을 클릭하세요", "{a0}개 저장 완료",
+    "{a0}개 감지됨", "분석 중…", "{a0}개 저장 완료",
     "좌표 파일 기준", "픽셀 자동 감지", "{a0} · {a1}프레임", "회전 {a0}", "트리밍 {a0}",
     "{a0}개 중 {a1}개 선택됨  ·  {a2}  ·  빈 곳 드래그=범위 선택, 휠=확대,"
     " 가운데/오른쪽 드래그=이동, 더블클릭=화면 맞춤",
@@ -1229,6 +1222,15 @@ def pool_move(moves, pot=False, spacing=2, width=0, split=False):
         cw, chh = g["grid"]["cell"]
         _fit_grid(g, [(gx0 + (p["x"] - gx0) // cw * cw, gy0 + (p["y"] - gy0) // chh * chh)
                       for p in g["items"]])
+    # 그룹을 통째로 옮겼으면 옮긴 높이에 맞춰 밴드 순서도 바꾼다.
+    # 다른 그룹보다 위로 끌어 올리면 그 그룹보다 앞 순서가 된다.
+    ids = {id(p) for p in moved}
+    whole = [k for k, g in enumerate(_groups) if all(id(p) in ids for p in g["items"])]
+    if whole:
+        bands = [(min(p["y"] for p in g["items"]),
+                  max(p["y"] + p["img"].height for p in g["items"])
+                  - min(p["y"] for p in g["items"])) for g in _groups]
+        _groups[:] = [_groups[k] for k in band_order(bands, whole)]
     _restack(spacing, width, pot, split)
     return json.dumps(_pool_state())
 

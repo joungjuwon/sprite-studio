@@ -43,6 +43,7 @@ from spritecore import (
     LANG_CODES,
     LANG_NAMES,
     auto_width,
+    band_order,
     block_size,
     carry_order,
     cell_offset,
@@ -3634,6 +3635,16 @@ class SpriteStudio:
                 cw, chh = g.grid["cell"]
                 self.fit_grid(g, [(gx0 + (p.x - gx0) // cw * cw,
                                    gy0 + (p.y - gy0) // chh * chh) for p in g.items])
+            # 그룹을 통째로 옮겼으면 옮긴 높이에 맞춰 밴드 순서도 바꾼다.
+            # 다른 그룹보다 위로 끌어 올리면 그 그룹보다 앞 순서가 된다.
+            ids = {id(self.pool[j]) for j in orig}
+            whole = [k for k, g in enumerate(self.groups)
+                     if all(id(p) in ids for p in g.items)]
+            if whole:
+                bands = [(min(p.y for p in g.items),
+                          max(p.y + p.h for p in g.items) - min(p.y for p in g.items))
+                         for g in self.groups]
+                self.groups[:] = [self.groups[k] for k in band_order(bands, whole)]
             self.log(t("{a0}개 이동 ({a1:+d}, {a2:+d}) · 그룹 {a3}개 고정",
                        a0=len(orig), a1=dx, a2=dy, a3=len(moved)))
             self.restack()              # 옮긴 그룹이 다른 그룹과 겹치지 않게

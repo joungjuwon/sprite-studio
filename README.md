@@ -59,7 +59,7 @@ Option panels on the right open and close when you click their title.
    |---|---|
    | One sprite is split into several boxes | Raise **Merge gap (px)** |
    | Small specks are picked up | Raise **Min width/height (px)** or **Min pixel count** |
-   | The background is not transparent | Check **Solid background**, click **Picker**, then click the background in the image |
+   | The background is not transparent | Check **Solid background**, then pick the background color. On the web, click **Color** and use the eyedropper in the color window; on the desktop, click **Picker** and then the background in the image |
    | Background edges remain around sprites | Raise **Background tolerance** |
 
    These options apply to the selected sheet only. To use them everywhere, click **Apply these settings to all sheets**.
@@ -336,7 +336,7 @@ Your browser's Do Not Track setting is respected.
    |---|---|
    | 스프라이트 하나가 여러 칸으로 쪼개짐 | **조각 합치기(px)** 를 올립니다 |
    | 자잘한 점까지 잡힘 | **최소 가로·세로(px)** 또는 **최소 픽셀 수** 를 올립니다 |
-   | 배경이 투명하지 않음 | **단색 배경** 을 켜고 **스포이트** 를 누른 뒤 그림의 배경을 클릭합니다 |
+   | 배경이 투명하지 않음 | **단색 배경** 을 켜고 배경색을 고릅니다. 웹은 **색** 을 눌러 색 창의 스포이트로, 데스크톱은 **스포이트** 를 누른 뒤 그림의 배경을 클릭합니다 |
    | 스프라이트 둘레에 배경색이 남음 | **배경색 허용 범위** 를 올립니다 |
 
    이 옵션은 선택한 시트에만 적용됩니다. 모든 시트에 쓰려면 **이 설정을 모든 시트에 적용** 을 누릅니다.
@@ -617,7 +617,7 @@ Your browser's Do Not Track setting is respected.
    |---|---|
    | 1 つのスプライトが複数の枠に分かれる | **断片を結合(px)** を上げます |
    | 細かい点まで拾ってしまう | **最小の幅・高さ(px)** または **最小ピクセル数** を上げます |
-   | 背景が透明でない | **単色背景** をオンにし、**スポイト** を押してから画像の背景をクリックします |
+   | 背景が透明でない | **単色背景** をオンにして背景色を選びます。Web 版は **色** を押して色ウィンドウのスポイトで、デスクトップ版は **スポイト** を押してから画像の背景をクリックします |
    | スプライトの周りに背景色が残る | **背景色の許容範囲** を上げます |
 
    これらのオプションは選択中のシートにだけ適用されます。全シートに使うには **この設定を全シートに適用** を押します。
@@ -893,7 +893,7 @@ Web アプリでは、画像はブラウザの中だけで処理され、どこ�
    |---|---|
    | 一个精灵被分成了好几个框 | 调高 **合并碎片(px)** |
    | 连细小的杂点也被检测到 | 调高 **最小宽·高(px)** 或 **最少像素数** |
-   | 背景不是透明的 | 打开 **纯色背景**，点击 **吸管**，再点击图片中的背景 |
+   | 背景不是透明的 | 打开 **纯色背景** 并选择背景色。网页版点击 **颜色**，用颜色窗口里的吸管；桌面版点击 **吸管**，再点击图片中的背景 |
    | 精灵周围残留背景色 | 调高 **背景色容差** |
 
    这些选项只应用于所选图集。要用于所有图集，请点击 **将此设置应用到所有图集**。

@@ -202,7 +202,6 @@ main {
 }
 #view { display: block; width: 100%; height: 100%; cursor: default; }
 #view.panning { cursor: grabbing; }
-#view.eyedropping { cursor: crosshair; }
 #drop-hint {
   position: absolute;
   inset: 0;

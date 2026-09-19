@@ -177,6 +177,10 @@ def stack_bands(blocks, spacing=2, border=0, snaps=None):
     배수면 `시작 + 줄 × 칸높이` 도 칸 높이의 배수라, 엔진이 (0, 0) 부터 같은 칸
     크기로 나눠도 그 밴드의 프레임들이 칸 경계에 정확히 떨어진다. Unity 처럼
     격자 범위를 제한할 수 없는 엔진에서 특히 도움이 된다.
+
+    격자 그룹 아래에는 간격을 더 두지 않는다. 칸 크기에 이미 간격이 들어 있다.
+    여기에 간격을 더하면 칸 높이의 배수를 막 넘어서, 같은 칸의 격자 그룹이
+    이어질 때 칸 한 줄만큼 통째로 비어 버린다.
     """
     out, y = [], border
     for i, (_w, h) in enumerate(blocks):
@@ -184,8 +188,26 @@ def stack_bands(blocks, spacing=2, border=0, snaps=None):
         if snap > 0:
             y = -(-y // snap) * snap
         out.append((border, y))
-        y += h + spacing
+        y += h + (0 if snap > 0 else spacing)
     return out
+
+
+def band_order(bands, moved):
+    """손으로 옮긴 그룹이 들어갈 밴드 순서. 반환: 새 순서의 번호 목록.
+
+    `bands` 는 그룹마다 (위, 높이), `moved` 는 통째로 옮긴 그룹의 번호들이다.
+    옮긴 그룹의 위쪽 끝이 다른 그룹의 가운데보다 위에 오면 그 그룹 앞으로
+    간다. 맨 위 그룹 위로는 더 올릴 자리가 없으니, 끝까지 올리지 않아도
+    절반만 넘기면 순서가 바뀌게 가운데를 기준으로 삼는다.
+    """
+    moved = set(moved)
+    order = [i for i in range(len(bands)) if i not in moved]
+    for m in sorted(moved, key=lambda i: bands[i][0]):
+        top = bands[m][0]
+        at = next((k for k, i in enumerate(order)
+                   if i not in moved and top < bands[i][0] + bands[i][1] / 2), len(order))
+        order.insert(at, m)
+    return order
 
 
 def grid_meta(grid):
@@ -216,30 +238,35 @@ def fit_to_cell(w, h, cell):
     return -(-w // cw) * cw, -(-h // chh) * chh
 
 
+def drag_count(extent, cell):
+    """그은 길이에 들어가는 칸 수. 반 칸을 넘기면 한 칸으로 친다 (최소 1)."""
+    return max(1, int(extent / cell + 0.5)) if cell > 0 else 1
+
+
 def drag_grid(sizes, start, end, spacing=2, grid=0, pot=False):
     """드래그한 모양에서 (한 줄에 넣을 개수, 줄 수, 가로 방향인가) 를 정한다.
 
     길게 그은 쪽이 채워 나가는 방향이고, 그 반대쪽 두께가 줄 수를 정한다.
-    두께가 한 칸도 안 되면 '선' 을 그은 것으로 보고 길이와 상관없이 한 줄에
+    길이는 칸 단위로 반올림해 센다 — 2줄을 그리려면 1.5칸만 넘기면 되고, 5칸을
+    그리려면 4.5칸만 넘기면 된다. 딱 칸 끝까지 끌지 않아도 그린 모양대로 나온다.
+    두께가 한 칸으로 셈되면 '선' 을 그은 것으로 보고 길이와 상관없이 한 줄에
     전부 넣는다. 가로로 죽 긋는 동작이 도중에 접히지 않게 하려는 것이다.
-    두 칸 이상 들어갈 만큼 두꺼우면 '상자' 로 보고 격자로 채운다.
+    두 칸 이상으로 셈되면 '상자' 로 보고 격자로 채운다.
+    방향도 칸 단위로 비교해, 칸이 납작하거나 길쭉해도 그린 모양을 따른다.
     """
     n = len(sizes)
     if not n:
         return 0, 0, True
     cw, chh = drag_cell(sizes, spacing, grid, pot)
     dx, dy = abs(end[0] - start[0]), abs(end[1] - start[1])
-    horizontal = dx >= dy
+    horizontal = dx * chh >= dy * cw             # dx / cw >= dy / chh
     major_len, minor_len = (dx, dy) if horizontal else (dy, dx)
     major_cell, minor_cell = (cw, chh) if horizontal else (chh, cw)
 
-    def fits(extent, cell):
-        return max(1, int((extent + spacing) // cell))
-
-    if fits(minor_len, minor_cell) == 1:
+    if drag_count(minor_len, minor_cell) == 1:
         wrap = n                                   # 선 → 한 줄에 전부
     else:
-        wrap = min(n, fits(major_len, major_cell))  # 상자 → 가로폭만큼 채우고 접기
+        wrap = min(n, drag_count(major_len, major_cell))  # 상자 → 가로폭만큼 채우고 접기
     return wrap, -(-n // wrap), horizontal
 
 

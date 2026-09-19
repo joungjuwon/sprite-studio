@@ -27,6 +27,7 @@ from .detect import (
 )
 from .packing import (
     auto_width,
+    band_order,
     block_size,
     cell_offset,
     drag_cell,
@@ -63,7 +64,7 @@ __all__ = [
     "FONTS", "LANG_CODES", "LANG_NAMES", "TRANSLATIONS", "set_lang", "t",
     "bboxes_from_labels", "build_mask", "carry_order", "crop_sprites", "detect_boxes",
     "dilate", "label_components", "move_in_order", "sort_reading_order",
-    "auto_width", "block_size", "cell_offset", "drag_cell", "drag_cells", "drag_grid", "drag_positions", "find_overlaps",
+    "auto_width", "band_order", "block_size", "cell_offset", "drag_cell", "drag_cells", "drag_grid", "drag_positions", "find_overlaps",
     "fit_to_cell", "grid_layout", "grid_meta", "group_layout", "grid_positions", "grid_sheet_size",
     "next_pot", "pack_shelf", "sort_by_position", "stack_bands",
     "extract_atlas_frame", "find_sibling_atlas", "parse_atlas_data",
