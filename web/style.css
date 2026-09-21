@@ -1,32 +1,68 @@
-/* 데스크톱(tkinter + vista 테마) 화면을 그대로 옮겼다.
- * 색은 sprite_studio.py 의 상수를 그대로 쓴다.
- *   BG_DARK #2b2b2b · BG_ROW #3c3f41 · BG_SEL #0d5c73
- *   FG_TEXT #e0e0e0 · FG_DIM #9aa0a6 · ACCENT #00e5ff · SEL #ffd54f
- *   SEC_BG #dfe3e6 · SEC_FG #1f2328 · SEC_MARK #5a6672
+/* 색의 뿌리는 여전히 sprite_studio.py 의 상수다 — 캔버스와 강조색은 그대로
+ * 두어 데스크톱과 같은 제품으로 읽히게 한다. 바뀐 것은 밝은 크롬(패널·테두리
+ * ·글자)으로, ttk vista 를 베낀 회색 대신 한 계열의 중성색 스케일을 쓴다.
+ *   그대로 : BG_DARK #2b2b2b · BG_ROW #3c3f41 · BG_SEL #0d5c73
+ *            ACCENT #00e5ff · SEL #ffd54f · BIG #0b7285
+ *   다시 짬: 패널·테두리·글자색, 그리고 타입·간격·반경 스케일
  */
 
 :root {
-  --panel: #f0f0f0;          /* ttk vista 기본 패널색 */
-  --panel-line: #a0a0a0;
-  --fg: #000;
-  --note: #888;
+  /* --- 간격. 4px 단위로만 움직인다 ------------------------------- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
 
+  /* --- 글자 크기. 역할마다 하나씩 -------------------------------- */
+  --fs-xs: 11px;   /* 메타 정보, 보조 수치 */
+  --fs-sm: 12px;   /* 힌트, 각주 */
+  --fs-md: 13px;   /* 본문 기본 */
+  --fs-lg: 15px;   /* 패널 제목, 탭 */
+  --fs-xl: 18px;   /* 화면 제목 */
+  --fs-2xl: 20px;  /* 주 실행 단추 */
+
+  /* --- 모서리 --------------------------------------------------- */
+  --r1: 4px;
+  --r2: 6px;
+  --r3: 10px;
+
+  /* --- 조작부 최소 높이. 손가락으로도 눌리는 크기 ---------------- */
+  --ctl: 32px;
+
+  /* --- 밝은 크롬 ------------------------------------------------ */
+  --panel: #eceff3;
+  --panel-2: #f6f8fa;        /* 패널 위에 한 단 떠 있는 면 */
+  --surface: #fff;
+  --panel-line: #cdd5dd;
+  --panel-line-2: #e3e8ed;   /* 더 약한 구분선 */
+  --fg: #16202b;
+  --fg-mute: #55626f;        /* 라벨, 부제 */
+  --note: #78848f;           /* 힌트 */
+
+  /* --- 어두운 면. 데스크톱과 동일하게 유지 ----------------------- */
   --bg-dark: #2b2b2b;
   --bg-row: #3c3f41;
+  --bg-row-hover: #484c4f;
   --bg-sel: #0d5c73;
   --fg-text: #e0e0e0;
   --fg-dim: #9aa0a6;
   --accent: #00e5ff;
   --sel: #ffd54f;
 
-  --sec-bg: #dfe3e6;
-  --sec-bg-hover: #cdd4d9;
+  /* --- 접이식 머리글 -------------------------------------------- */
+  --sec-bg: #e2e7ec;
+  --sec-bg-hover: #d5dce3;
   --sec-fg: #1f2328;
   --sec-mark: #5a6672;
 
+  /* --- 주 실행 단추 --------------------------------------------- */
   --big: #0b7285;
   --big-hover: #0e8fa3;
-  --big-off: #9aa0a6;
+  --big-off: #b3bcc4;
+
+  /* --- 초점 고리 ------------------------------------------------ */
+  --focus: #0e8fa3;
 
   --ui: "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
   --mono: Consolas, "D2Coding", monospace;
@@ -47,24 +83,44 @@ body {
   margin: 0;
   background: var(--panel);
   color: var(--fg);
-  font: 12px/1.45 var(--ui);
+  font: var(--fs-md)/1.5 var(--ui);
   overflow: hidden;
 }
 
 button, select, input[type=text] {
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-md);
+  min-height: var(--ctl);
   color: var(--fg);
-  background: #fdfdfd;
+  background: var(--surface);
   border: 1px solid var(--panel-line);
-  border-radius: 3px;
-  padding: 3px 8px;
+  border-radius: var(--r1);
+  padding: 0 var(--s3);
   cursor: pointer;
+  transition: background .12s, border-color .12s;
 }
-button:hover:not(:disabled) { background: #e5f1fb; border-color: #0078d7; }
-button:disabled { color: #a0a0a0; background: #f4f4f4; cursor: default; }
-input[type=text] { cursor: text; }
-input[type=range] { width: 100%; accent-color: #0078d7; }
+button:hover:not(:disabled) { background: var(--panel-2); border-color: #9fb0bf; }
+button:active:not(:disabled) { background: #e6ebf0; }
+button:disabled {
+  color: #a9b3bc;
+  background: var(--panel-2);
+  border-color: var(--panel-line-2);
+  cursor: default;
+}
+input[type=text] { cursor: text; padding: 0 var(--s2); }
+input[type=range] { width: 100%; accent-color: var(--big); }
+
+/* 키보드로 옮겨 다닐 때만 고리를 보여 준다 (마우스 클릭에는 안 뜬다) */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+  border-radius: var(--r1);
+}
+/* 어두운 면 위에서는 밝은 고리로 */
+#lib-list :focus-visible,
+#log :focus-visible,
+#stage :focus-visible,
+#lstage :focus-visible { outline-color: var(--accent); }
 
 /* ------------------------------------------------------------- 로딩 */
 #boot {
@@ -93,13 +149,13 @@ input[type=range] { width: 100%; accent-color: #0078d7; }
 main {
   display: flex;
   height: 100%;
-  padding: 6px;
-  gap: 8px;
+  padding: var(--s3);
+  gap: var(--s3);
 }
 
 /* ------------------------------------------------------------- 왼쪽 라이브러리 */
 #lib {
-  width: 208px;
+  width: 228px;
   flex: none;
   display: flex;
   flex-direction: column;
@@ -108,62 +164,86 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
 }
-.lang-row select { width: 96px; }
-#lib h2 { font-size: 13px; font-weight: 700; margin: 0; }
+.lang-row label { color: var(--note); font-size: var(--fs-sm); }
+.lang-row select { flex: 1; min-width: 0; max-width: 130px; }
+#lib h2 {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: -.01em;
+  margin: 0;
+}
 .lib-hint {
-  color: #666;
-  font-size: 11px;
-  margin: 0 0 4px;
+  color: var(--note);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  margin: 2px 0 var(--s2);
 }
 #lib-list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   background: var(--bg-dark);
-  border: 1px solid #555;
-  padding: 3px;
+  border: 1px solid var(--panel-line);
+  border-radius: var(--r2);
+  padding: var(--s1);
 }
 #lib-empty {
   color: var(--fg-dim);
   text-align: center;
-  padding: 20px 0;
+  padding: var(--s5) var(--s2);
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
 }
 .sheet-row {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: var(--s2);
   background: var(--bg-row);
-  padding: 4px;
-  margin-bottom: 2px;
+  border-radius: var(--r1);
+  padding: var(--s2);
+  margin-bottom: var(--s1);
   cursor: pointer;
+  transition: background .12s;
 }
+.sheet-row:hover { background: var(--bg-row-hover); }
 .sheet-row.on { background: var(--bg-sel); }
-.sheet-row img { width: 64px; height: 64px; flex: none; image-rendering: pixelated; }
+.sheet-row img {
+  width: 56px; height: 56px;
+  flex: none;
+  image-rendering: pixelated;
+  border-radius: 3px;
+  background: #222;
+}
 .sheet-info { flex: 1; min-width: 0; }
 .sheet-name {
   color: var(--fg-text);
   font-weight: 700;
-  font-size: 12px;
+  font-size: var(--fs-md);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.sheet-meta { color: var(--fg-dim); font: 11px var(--mono); }
-.sheet-count { color: var(--accent); font: 11px var(--mono); }
+.sheet-meta { color: var(--fg-dim); font: var(--fs-xs) var(--mono); }
+.sheet-count { color: var(--accent); font: var(--fs-xs) var(--mono); }
+/* 카드 안의 작은 표적들 — 24px 이상은 확보한다 */
 .sheet-x {
   color: var(--fg-dim);
-  font: 700 15px Arial, sans-serif;
+  font: 700 16px Arial, sans-serif;
   line-height: 1;
-  padding: 0 2px;
+  display: grid;
+  place-items: center;
+  width: 24px; height: 24px;
+  flex: none;
+  border-radius: var(--r1);
   cursor: pointer;
 }
-.sheet-x:hover { color: #ff5252; }
+.sheet-x:hover { color: #fff; background: #c0392b; }
 
-.lib-btns { margin-top: 6px; display: grid; gap: 2px; }
+.lib-btns { margin-top: var(--s3); display: grid; gap: var(--s1); }
 .lib-btns button { width: 100%; }
 
 /* ------------------------------------------------------------- 가운데 */
@@ -173,31 +253,48 @@ main {
   display: flex;
   flex-direction: column;
 }
-.tabs { display: flex; gap: 2px; }
+.tabs { display: flex; gap: var(--s1); }
 .tab {
-  border-radius: 3px 3px 0 0;
-  border-bottom: none;
-  background: #f0f0f0;
-  padding: 4px 14px;
+  border-radius: var(--r2) var(--r2) 0 0;
+  border-bottom: 1px solid var(--panel-line);
+  background: var(--panel-2);
+  color: var(--fg-mute);
+  font-size: var(--fs-lg);
+  padding: 0 var(--s4);
+  min-height: 38px;
 }
-.tab.active { background: #fff; font-weight: 600; }
-.tab:disabled { color: #a0a0a0; }
+.tab.active {
+  background: var(--surface);
+  border-bottom-color: var(--surface);
+  color: var(--fg);
+  font-weight: 700;
+  box-shadow: inset 0 3px 0 var(--big);
+}
+.tab:disabled { color: #aab3bb; box-shadow: none; }
 .tab-body {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--panel-line);
-  background: #fff;
-  padding: 4px;
+  border-radius: 0 var(--r2) var(--r2) var(--r2);
+  background: var(--surface);
+  padding: var(--s3);
 }
-#title { font-size: 14px; font-weight: 700; padding: 2px 1px; }
+#title {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: -.015em;
+  padding: 0;
+}
 #stage {
   flex: 1;
   min-height: 0;
   position: relative;
-  margin: 4px 0;
-  border: 1px solid #666;
+  margin: var(--s2) 0 var(--s1);
+  border: 1px solid var(--panel-line);
+  border-radius: var(--r2);
+  overflow: hidden;
   background: var(--bg-dark);
 }
 #view { display: block; width: 100%; height: 100%; cursor: default; }
@@ -212,92 +309,163 @@ main {
   pointer-events: none;
 }
 #stage.over { outline: 2px dashed var(--accent); outline-offset: -6px; }
-#status { font-size: 11px; padding: 1px; }
+#status {
+  font-size: var(--fs-sm);
+  color: var(--fg-mute);
+  padding: 0 2px;
+}
 
+/* 작업 기록. 검은 터미널이 아니라 패널에 얹힌 조용한 기록으로 읽히게 한다 */
 #log {
-  height: 92px;
+  height: 76px;
   flex: none;
-  margin: 6px 0 0;
-  padding: 4px 6px;
+  margin: var(--s2) 0 0;
+  padding: var(--s2) var(--s3);
   overflow-y: auto;
-  background: #1e1e1e;
-  color: var(--fg-text);
-  font: 11px/1.5 var(--mono);
+  background: var(--panel-2);
+  border: 1px solid var(--panel-line-2);
+  border-radius: var(--r2);
+  color: var(--fg-mute);
+  font: var(--fs-xs)/1.6 var(--mono);
   white-space: pre-wrap;
   word-break: break-all;
 }
 
 /* ------------------------------------------------------------- 오른쪽 */
 #right {
-  width: 312px;
+  width: 320px;
   flex: none;
   display: flex;
   flex-direction: column;
 }
-#opts { flex: 1; min-height: 0; overflow-y: auto; }
+/* 섹션이 짧아도 아래쪽 빈 자리가 "덜 채워진 칸"으로 보이지 않도록,
+ * 목록은 제 높이만 차지하고 남는 공간은 내보내기 칸을 바닥으로 미는 데 쓴다.
+ *
+ * #opts2(2번 탭)도 반드시 같이 묶어야 한다. 원래는 #opts 에만 규칙이 있었고
+ * 2번 탭은 내용이 우연히 패널 높이 안에 들어가 넘치지 않았을 뿐이라,
+ * 조작부를 조금만 키워도 내보내기 단추가 화면 밖으로 밀려난다. */
+#opts,
+#opts2 {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
 
-.sec { margin-bottom: 4px; }
+.sec {
+  margin-bottom: 0;
+  border: 1px solid var(--panel-line-2);
+  border-radius: var(--r2);
+  background: var(--surface);
+  overflow: hidden;
+}
+.sec.open { border-color: var(--panel-line); }
 .sec-head {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--s1);
+  min-height: 38px;
   background: var(--sec-bg);
   cursor: pointer;
-  padding: 4px 3px;
+  padding: 0 var(--s2);
   user-select: none;
+  transition: background .12s;
 }
 .sec-head:hover { background: var(--sec-bg-hover); }
-.mark { color: var(--sec-mark); width: 18px; text-align: center; }
-.sec-title { flex: 1; color: var(--sec-fg); font-size: 13px; font-weight: 700; }
-.sec-act { padding: 2px 10px; }
-.sec-body { padding: 6px 10px; }
+.mark { color: var(--sec-mark); width: 16px; text-align: center; font-size: var(--fs-xs); }
+.sec-title { flex: 1; color: var(--sec-fg); font-size: var(--fs-md); font-weight: 700; }
+.sec-act { min-height: 26px; padding: 0 var(--s3); font-size: var(--fs-sm); }
+.sec-body { padding: var(--s3); }
 .sec:not(.open) .sec-body { display: none; }
 
-.note { color: var(--note); font-size: 11px; margin: 0 0 3px; }
+.note { color: var(--note); font-size: var(--fs-sm); margin: 0 0 var(--s2); }
 .note.atlas { white-space: pre-line; }
-.row { display: flex; align-items: center; gap: 4px; margin: 4px 0; }
+.row { display: flex; align-items: center; gap: var(--s2); margin: var(--s2) 0; }
 .row.two { justify-content: space-between; }
 .row.two button { flex: 1; }
-.cb { display: flex; align-items: center; gap: 5px; margin: 2px 0; cursor: pointer; }
-.cb input { margin: 0; }
-.wide { width: 100%; margin-top: 6px; }
+.cb {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 28px;
+  margin: 0;
+  cursor: pointer;
+}
+.cb input { margin: 0; width: 16px; height: 16px; accent-color: var(--big); }
+.wide { width: 100%; margin-top: var(--s3); }
 
-.slider { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
-.sl-lbl { width: 132px; flex: none; font-size: 11px; }
-.slider input { flex: 1; }
+/* 라벨을 슬라이더 위로 올린다. 가로로 나란히 두면 라벨 칸(132px)이
+ * 폭의 절반을 먹어 정작 끌 수 있는 구간이 좁아진다 — 번역마다 라벨
+ * 길이가 달라지는 문제도 같이 사라진다 */
+.slider { display: block; margin: 0 0 var(--s3); }
+.sl-lbl {
+  width: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s2);
+  color: var(--fg-mute);
+  margin-bottom: 2px;
+  /* 마크업이 <b>라벨</b>: <output>값</output> 이라, 맨 ":" 텍스트 노드가
+   * flex 항목이 되어 가운데 떠 버린다. 여기서 글자를 0 으로 죽이고
+   * 자식에서 되살려 콜론만 사라지게 한다 (마크업·번역 손 안 댐) */
+  font-size: 0;
+}
+.sl-lbl b { font-weight: 600; font-size: var(--fs-sm); }
+.sl-lbl output {
+  font: 700 var(--fs-md) var(--mono);
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.slider input { flex: none; width: 100%; }
 
-.bg-row { margin: 6px 0 2px; }
+.bg-row { margin: var(--s3) 0 var(--s2); }
 #swatch {
-  width: 22px; height: 16px;
-  border: 1px solid #808080;
+  width: 28px; height: 22px;
+  border: 1px solid var(--panel-line);
+  border-radius: 3px;
   background: #fff;
   display: inline-block;
+  flex: none;
 }
 .prefix-row { justify-content: space-between; }
-.prefix-row input { width: 150px; }
+.prefix-row input { flex: 1; min-width: 0; width: auto; }
 
-/* 내보내기 영역 — 데스크톱의 오른쪽 아래 고정 칸 */
-#export { flex: none; padding-top: 6px; }
+/* 내보내기 영역 — 데스크톱의 오른쪽 아래 고정 칸.
+ * margin-top:auto 로 언제나 패널 바닥에 붙는다 (섹션이 몇 개 열렸든) */
+#export {
+  flex: none;
+  margin-top: auto;
+  padding-top: var(--s3);
+  border-top: 1px solid var(--panel-line-2);
+}
 #export-hint {
-  color: #555;
-  font-size: 11px;
-  margin: 0 0 3px;
+  color: var(--fg-mute);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  margin: 0 0 var(--s2);
   white-space: pre-line;
-  min-height: 2.6em;
+  min-height: 3em;
 }
 #big {
   width: 100%;
-  padding: 14px 8px;
+  min-height: 52px;
+  padding: var(--s3) var(--s2);
   border: none;
-  border-radius: 0;
+  border-radius: var(--r2);
   background: var(--big);
   color: #fff;
-  font-size: 17px;
+  font-size: var(--fs-2xl);
   font-weight: 700;
+  letter-spacing: -.01em;
+  box-shadow: 0 1px 2px rgba(11, 114, 133, .3);
 }
 #big:hover:not(:disabled) { background: var(--big-hover); }
-#big:disabled { background: var(--big-off); color: #e8e8e8; }
-#sub { width: 100%; margin-top: 4px; }
+#big:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+#big:disabled { background: var(--big-off); color: #f2f4f6; box-shadow: none; }
+#sub { width: 100%; margin-top: var(--s2); }
 
 /* ------------------------------------------------------------- 알림 */
 #toast {
@@ -315,11 +483,26 @@ main {
 
 /* ------------------------------------------------------------- 좁은 화면 */
 @media (max-width: 900px) {
-  main { flex-direction: column; overflow-y: auto; }
+  main { flex-direction: column; overflow-y: auto; padding: var(--s2); gap: var(--s2); }
   #lib, #right { width: auto; }
   #lib-list { min-height: 120px; max-height: 220px; }
   #center { min-height: 60vh; }
-  #opts { overflow: visible; }
+  #opts { overflow: visible; flex: none; }
+  #export { margin-top: var(--s3); }
+  #log { height: 60px; }
+}
+
+/* 손가락으로 쓰는 화면에서는 표적을 키운다.
+ * 데스크톱 마우스는 25px 도 맞히지만 손끝은 못 맞힌다 */
+@media (pointer: coarse) {
+  :root { --ctl: 44px; --fs-xs: 12px; --fs-sm: 13px; --fs-md: 14px; }
+  .sec-head { min-height: 48px; }
+  .sec-act { min-height: 36px; }
+  .cb { min-height: 40px; }
+  .cb input { width: 20px; height: 20px; }
+  .sheet-x { width: 36px; height: 36px; }
+  .tab { min-height: 46px; }
+  input[type=range] { height: 32px; }
 }
 
 /* ------------------------------------------------------------- 2번 탭 */

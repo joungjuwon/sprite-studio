@@ -918,7 +918,12 @@ function wire() {
   // 옵션 섹션 접기/펴기
   document.querySelectorAll('.sec').forEach((sec) => {
     const key = 'sec:' + sec.dataset.key;
-    if (localStorage.getItem(key) === '1') sec.classList.add('open');
+    // 마크업의 open 은 "처음 왔을 때의 기본값"일 뿐이다. 저장된 값이 있으면
+    // 여는 쪽뿐 아니라 닫는 쪽도 따라야 기본으로 열어 둔 섹션을 사용자가
+    // 접어 둘 수 있다.
+    const saved = localStorage.getItem(key);
+    if (saved === '1') sec.classList.add('open');
+    else if (saved === '0') sec.classList.remove('open');
     sec.querySelector('.sec-head').addEventListener('click', (e) => {
       if (e.target.classList.contains('sec-act')) return;
       sec.classList.toggle('open');
