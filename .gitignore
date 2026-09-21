@@ -15,3 +15,7 @@ sprites/
 .idea/
 *.swp
 .DS_Store
+
+# Claude Code 도구 (스킬·GSD 설치물, 로컬 전용)
+.claude/
+.planning/
